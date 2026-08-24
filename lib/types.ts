@@ -25,3 +25,13 @@ export interface WorkoutSummary {
   workout_type: string;
   exerciseCount: number;
 }
+
+export type GymExperience = "rookie" | "intermediate" | "expert";
+
+export interface Profile {
+  name: string;
+  age: number | null;
+  weight_kg: number | null;
+  target_weight_kg: number | null;
+  gym_experience: GymExperience | null;
+}

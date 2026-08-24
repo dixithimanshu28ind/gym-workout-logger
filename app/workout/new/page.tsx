@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { createWorkout } from "@/lib/workouts";
 import type { WorkoutFormData } from "@/lib/types";
 import WorkoutForm from "@/components/WorkoutForm";
+import AppShell from "@/components/AppShell";
 
 export default function NewWorkoutPage() {
   const { user, loading } = useAuth();
@@ -37,14 +38,13 @@ export default function NewWorkoutPage() {
   };
 
   return (
-    <main className="flex-1 max-w-2xl w-full mx-auto px-6 py-10 space-y-6">
-      <h1 className="text-2xl font-bold">Log New Workout</h1>
+    <AppShell title="Log New Workout">
       {error && (
         <p className="text-sm text-red-600" role="alert">
           {error}
         </p>
       )}
       <WorkoutForm onSubmit={handleSubmit} submitLabel="Submit Workout" />
-    </main>
+    </AppShell>
   );
 }

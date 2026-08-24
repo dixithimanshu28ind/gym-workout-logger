@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchWorkoutDetail, updateWorkout, deleteWorkout } from "@/lib/workouts";
 import type { WorkoutFormData } from "@/lib/types";
 import WorkoutForm from "@/components/WorkoutForm";
+import AppShell from "@/components/AppShell";
 
 export default function WorkoutDetailPage({
   params,
@@ -77,17 +78,10 @@ export default function WorkoutDetailPage({
   };
 
   return (
-    <main className="flex-1 max-w-2xl w-full mx-auto px-6 py-10 space-y-6">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 text-sm text-neutral-600 hover:underline"
-      >
-        ← Back to Dashboard
-      </Link>
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Edit Workout</h1>
-        {!confirmDelete ? (
+    <AppShell
+      title="Edit Workout"
+      actions={
+        !confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
             className="text-sm text-red-600 hover:underline"
@@ -111,8 +105,15 @@ export default function WorkoutDetailPage({
               Cancel
             </button>
           </div>
-        )}
-      </div>
+        )
+      }
+    >
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1 text-sm text-neutral-600 hover:underline"
+      >
+        ← Back to Dashboard
+      </Link>
 
       {error && (
         <p className="text-sm text-red-600" role="alert">
@@ -123,6 +124,6 @@ export default function WorkoutDetailPage({
       {workout && (
         <WorkoutForm initialData={workout} onSubmit={handleSubmit} submitLabel="Save Changes" />
       )}
-    </main>
+    </AppShell>
   );
 }

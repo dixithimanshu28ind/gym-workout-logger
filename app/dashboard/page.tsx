@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchWorkoutSummaries } from "@/lib/workouts";
+import { computeCurrentStreak } from "@/lib/streak";
 import type { WorkoutSummary } from "@/lib/types";
 import WorkoutSummaryCard from "@/components/WorkoutSummaryCard";
+import AppShell from "@/components/AppShell";
 
 export default function DashboardPage() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(true);
@@ -46,24 +48,31 @@ export default function DashboardPage() {
     );
   }
 
-  return (
-    <main className="flex-1 max-w-2xl w-full mx-auto px-6 py-10 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Your Workouts</h1>
-        <button
-          onClick={() => signOut()}
-          className="text-sm text-neutral-600 hover:underline"
-        >
-          Sign Out
-        </button>
-      </div>
+  const streak = computeCurrentStreak(workouts.map((w) => w.date));
 
-      <Link
-        href="/workout/new"
-        className="block text-center rounded-lg bg-neutral-900 text-white font-medium py-2.5 hover:bg-neutral-700 transition"
-      >
-        + Log New Workout
-      </Link>
+  return (
+    <AppShell
+      title="Your Workouts"
+      actions={
+        <Link
+          href="/workout/new"
+          className="rounded-lg bg-accent text-accent-foreground text-sm font-medium px-4 py-2 hover:opacity-90 transition"
+        >
+          + Log New Workout
+        </Link>
+      }
+    >
+      <div className="rounded-2xl bg-sidebar text-sidebar-foreground p-6 flex items-center gap-4">
+        <span className="text-4xl" aria-hidden>
+          🔥
+        </span>
+        <div>
+          <p className="font-display text-3xl tracking-wide">
+            {streak} day{streak === 1 ? "" : "s"}
+          </p>
+          <p className="text-sm text-sidebar-foreground-muted">Current streak</p>
+        </div>
+      </div>
 
       {error && (
         <p className="text-sm text-red-600" role="alert">
@@ -84,6 +93,6 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
-    </main>
+    </AppShell>
   );
 }

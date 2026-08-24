@@ -5,7 +5,7 @@ export default function WorkoutSummaryCard({ workout }: { workout: WorkoutSummar
   return (
     <Link
       href={`/workout/${workout.id}`}
-      className="block rounded-xl border border-neutral-200 p-4 hover:border-neutral-400 transition"
+      className="block rounded-xl border border-card-border bg-card p-4 hover:border-accent transition"
     >
       <div className="flex items-center justify-between">
         <div>

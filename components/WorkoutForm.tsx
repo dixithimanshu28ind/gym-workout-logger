@@ -108,7 +108,7 @@ export default function WorkoutForm({ initialData, onSubmit, submitLabel }: Work
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <div>
@@ -121,21 +121,21 @@ export default function WorkoutForm({ initialData, onSubmit, submitLabel }: Work
             placeholder="e.g. Push, Pull, Legs, Cardio"
             value={workoutType}
             onChange={(e) => setWorkoutType(e.target.value)}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
       </div>
 
       <div className="space-y-4">
         {exercises.map((ex, exIdx) => (
-          <div key={exIdx} className="rounded-xl border border-neutral-200 p-4 space-y-3">
+          <div key={exIdx} className="rounded-xl border border-card-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-3">
               <input
                 type="text"
                 placeholder={`Exercise ${exIdx + 1} name`}
                 value={ex.name}
                 onChange={(e) => updateExerciseName(exIdx, e.target.value)}
-                className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <button
                 type="button"
@@ -205,7 +205,7 @@ export default function WorkoutForm({ initialData, onSubmit, submitLabel }: Work
         <button
           type="button"
           onClick={addExercise}
-          className="w-full rounded-lg border border-dashed border-neutral-400 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition"
+          className="w-full rounded-lg border border-dashed border-accent py-2.5 text-sm font-medium text-neutral-700 hover:bg-accent/10 transition"
         >
           + Add Exercise
         </button>
@@ -224,7 +224,7 @@ export default function WorkoutForm({ initialData, onSubmit, submitLabel }: Work
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-neutral-900 text-white font-medium py-2.5 hover:bg-neutral-700 transition disabled:opacity-50"
+        className="w-full rounded-lg bg-accent text-accent-foreground font-medium py-2.5 hover:opacity-90 transition disabled:opacity-50"
       >
         {submitting ? "Saving..." : submitLabel}
       </button>
