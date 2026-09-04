@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchProfile } from "@/lib/profile";
+import { fetchProfile, leaveProgram } from "@/lib/profile";
 import { PROGRAMS } from "@/lib/programs";
 import AppShell from "@/components/AppShell";
+import Modal from "@/components/Modal";
 
 export default function ProgramsPage() {
   const { user, loading } = useAuth();
@@ -15,6 +16,9 @@ export default function ProgramsPage() {
   const [loadingSelection, setLoadingSelection] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showLeaveSuccess, setShowLeaveSuccess] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,6 +32,22 @@ export default function ProgramsPage() {
         .finally(() => setLoadingSelection(false));
     }
   }, [user, loading, router]);
+
+  const handleLeaveConfirm = async () => {
+    if (!user) return;
+    setError(null);
+    setLeaving(true);
+    try {
+      await leaveProgram(user.id);
+      setSelectedId(null);
+      setShowLeaveConfirm(false);
+      setShowLeaveSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to leave program.");
+    } finally {
+      setLeaving(false);
+    }
+  };
 
   if (loading || !user || loadingSelection) {
     return (
@@ -62,9 +82,21 @@ export default function ProgramsPage() {
                   <p className="text-sm text-neutral-500">{program.subtitle}</p>
                 </div>
                 {isSelected && (
-                  <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-                    Selected
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
+                      Selected
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowLeaveConfirm(true);
+                      }}
+                      className="rounded-full border border-card-border px-3 py-1 text-xs font-medium text-neutral-600 hover:border-red-300 hover:text-red-600"
+                    >
+                      Leave Program
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -93,6 +125,33 @@ export default function ProgramsPage() {
           );
         })}
       </div>
+
+      {showLeaveConfirm && (
+        <Modal onClose={() => setShowLeaveConfirm(false)} showCloseButton={false}>
+          <p className="text-sm">Are you sure you want to leave this program?</p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button
+              onClick={() => setShowLeaveConfirm(false)}
+              className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium hover:bg-background"
+            >
+              No
+            </button>
+            <button
+              onClick={handleLeaveConfirm}
+              disabled={leaving}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {leaving ? "Leaving..." : "Yes, Leave Program"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {showLeaveSuccess && (
+        <Modal onClose={() => setShowLeaveSuccess(false)}>
+          <p className="text-sm">You&apos;ve left the program.</p>
+        </Modal>
+      )}
     </AppShell>
   );
 }

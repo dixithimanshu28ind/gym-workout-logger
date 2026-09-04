@@ -4,10 +4,11 @@ import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchProfile, selectProgram } from "@/lib/profile";
+import { fetchProfile, selectProgram, leaveProgram } from "@/lib/profile";
 import { getProgramById } from "@/lib/programs";
 import { getProgramDetail } from "@/lib/programDetails";
 import AppShell from "@/components/AppShell";
+import Modal from "@/components/Modal";
 import { CollapsibleSection, TextBlockContent, WeekBlockContent } from "@/components/ProgramPlan";
 
 export default function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +26,9 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   const [saving, setSaving] = useState(false);
   const [justSelected, setJustSelected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showLeaveSuccess, setShowLeaveSuccess] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const disclaimerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,14 +86,32 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleLeaveConfirm = async () => {
+    setError(null);
+    setLeaving(true);
+    try {
+      await leaveProgram(user.id);
+      setSelectedId(null);
+      setJustSelected(false);
+      setShowLeaveConfirm(false);
+      setShowLeaveSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to leave program.");
+    } finally {
+      setLeaving(false);
+    }
+  };
+
   return (
     <AppShell title={program.name}>
-      <button
-        onClick={scrollToDisclaimer}
-        className="hidden sm:block fixed left-60 top-1/2 z-20 -translate-y-1/2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-accent-foreground shadow-lg transition hover:opacity-90"
-      >
-        {isSelected ? "Current Program ↓" : "Select & Start ↓"}
-      </button>
+      {!isSelected && (
+        <button
+          onClick={scrollToDisclaimer}
+          className="hidden sm:block fixed left-60 top-1/2 z-20 -translate-y-1/2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-accent-foreground shadow-lg transition hover:opacity-90"
+        >
+          Select & Start ↓
+        </button>
+      )}
 
       <div className="space-y-6">
         <div>
@@ -193,7 +215,51 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
             {isSelected ? "Current Program" : saving ? "Selecting..." : "Select & Start"}
           </button>
         </div>
+
+        {isSelected && (
+          <button
+            onClick={() => setShowLeaveConfirm(true)}
+            className="w-full rounded-lg border border-card-border px-6 py-2.5 text-sm font-medium text-neutral-600 transition hover:border-red-300 hover:text-red-600 sm:w-auto"
+          >
+            Leave Program
+          </button>
+        )}
       </div>
+
+      {showLeaveConfirm && (
+        <Modal onClose={() => setShowLeaveConfirm(false)} showCloseButton={false}>
+          <p className="text-sm">Are you sure you want to leave this program?</p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button
+              onClick={() => setShowLeaveConfirm(false)}
+              className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium hover:bg-background"
+            >
+              No
+            </button>
+            <button
+              onClick={handleLeaveConfirm}
+              disabled={leaving}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {leaving ? "Leaving..." : "Yes, Leave Program"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {showLeaveSuccess && (
+        <Modal onClose={() => setShowLeaveSuccess(false)}>
+          <p className="text-sm">You&apos;ve left the program.</p>
+          <div className="mt-5 flex justify-end">
+            <Link
+              href="/programs"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
+            >
+              Select Another Program
+            </Link>
+          </div>
+        </Modal>
+      )}
     </AppShell>
   );
 }

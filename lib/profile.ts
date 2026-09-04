@@ -27,3 +27,11 @@ export async function selectProgram(userId: string, programId: string): Promise<
 
   if (error) throw new Error(error.message);
 }
+
+export async function leaveProgram(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({ user_id: userId, selected_program_id: null }, { onConflict: "user_id" });
+
+  if (error) throw new Error(error.message);
+}
