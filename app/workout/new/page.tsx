@@ -143,13 +143,20 @@ function NewWorkoutPageInner() {
     setSections((prev) => [...prev, { clientKey: nextClientKey(), data: emptySectionData() }]);
 
   const removeSection = (idx: number) =>
-    setSections((prev) => prev.filter((_, i) => i !== idx));
+    setSections((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next.length > 0 ? next : [{ clientKey: nextClientKey(), data: emptySectionData() }];
+    });
 
   const handleSave = useCallback(async () => {
     if (!user) return;
     setError(null);
 
-    const allErrors = sections.flatMap((s, i) =>
+    const meaningfulSections = sections.filter(
+      (s) => s.data.workout_type !== "" || s.data.exercises.length > 0
+    );
+
+    const allErrors = meaningfulSections.flatMap((s, i) =>
       validateWorkoutSection(s.data, `Workout ${i + 1}`)
     );
     setErrors(allErrors);
@@ -158,12 +165,12 @@ function NewWorkoutPageInner() {
     setSaving(true);
     try {
       const currentIds = new Set(
-        sections.filter((s) => s.data.id).map((s) => s.data.id!)
+        meaningfulSections.filter((s) => s.data.id).map((s) => s.data.id!)
       );
       const removedIds = initialSectionIds.filter((id) => !currentIds.has(id));
 
       await Promise.all([
-        ...sections.map((s) => {
+        ...meaningfulSections.map((s) => {
           const payload: WorkoutFormData = {
             date: selectedDate,
             workout_type: s.data.workout_type,
@@ -235,7 +242,7 @@ function NewWorkoutPageInner() {
               label={`Workout ${idx + 1}`}
               value={section.data}
               onChange={(next) => updateSection(idx, next)}
-              onRemove={sections.length > 1 ? () => removeSection(idx) : undefined}
+              onRemove={() => removeSection(idx)}
             />
           ))}
 
