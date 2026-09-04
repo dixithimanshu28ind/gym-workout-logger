@@ -24,6 +24,7 @@ import AppShell from "@/components/AppShell";
 interface SectionState {
   clientKey: string;
   data: WorkoutSectionData;
+  justAdded?: boolean;
 }
 
 const emptySectionData = (): WorkoutSectionData => ({
@@ -57,6 +58,7 @@ function NewWorkoutPageInner() {
     () => prefilledDate ?? formatDateKey(new Date())
   );
   const [sections, setSections] = useState<SectionState[]>([]);
+  const [expandedIndex, setExpandedIndex] = useState(0);
   const [initialSectionIds, setInitialSectionIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -80,6 +82,7 @@ function NewWorkoutPageInner() {
           if (!map.get(selectedDate)?.length) {
             setSections([{ clientKey: nextClientKey(), data: emptySectionData() }]);
             setInitialSectionIds([]);
+            setExpandedIndex(0);
           }
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load workout data."))
@@ -115,6 +118,7 @@ function NewWorkoutPageInner() {
           }))
         );
         setInitialSectionIds(currentIdsForDate);
+        setExpandedIndex(0);
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load workouts.");
@@ -131,6 +135,7 @@ function NewWorkoutPageInner() {
       setSections([{ clientKey: nextClientKey(), data: emptySectionData() }]);
       setInitialSectionIds([]);
     }
+    setExpandedIndex(0);
   };
 
   const loggedDates = useMemo(() => new Set(dateToWorkoutIds.keys()), [dateToWorkoutIds]);
@@ -139,14 +144,25 @@ function NewWorkoutPageInner() {
   const updateSection = (idx: number, next: WorkoutSectionData) =>
     setSections((prev) => prev.map((s, i) => (i === idx ? { ...s, data: next } : s)));
 
-  const addSection = () =>
-    setSections((prev) => [...prev, { clientKey: nextClientKey(), data: emptySectionData() }]);
+  const addSection = () => {
+    setSections((prev) => [
+      ...prev,
+      { clientKey: nextClientKey(), data: emptySectionData(), justAdded: true },
+    ]);
+    setExpandedIndex(sections.length);
+  };
 
-  const removeSection = (idx: number) =>
+  const removeSection = (idx: number) => {
     setSections((prev) => {
       const next = prev.filter((_, i) => i !== idx);
       return next.length > 0 ? next : [{ clientKey: nextClientKey(), data: emptySectionData() }];
     });
+    setExpandedIndex((prev) => {
+      if (idx < prev) return prev - 1;
+      if (idx === prev) return 0;
+      return prev;
+    });
+  };
 
   const handleSave = useCallback(async () => {
     if (!user) return;
@@ -227,9 +243,10 @@ function NewWorkoutPageInner() {
         </p>
       )}
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Date</label>
-        <WorkoutDatePicker value={selectedDate} onChange={handleDateChange} loggedDates={loggedDates} />
+      <div className="sticky top-0 z-20 -mx-6 flex justify-center border-b border-card-border bg-background px-6 py-3">
+        <div className="w-full max-w-xs">
+          <WorkoutDatePicker value={selectedDate} onChange={handleDateChange} loggedDates={loggedDates} />
+        </div>
       </div>
 
       {loadingSections ? (
@@ -239,10 +256,12 @@ function NewWorkoutPageInner() {
           {sections.map((section, idx) => (
             <WorkoutSection
               key={section.clientKey}
-              label={`Workout ${idx + 1}`}
               value={section.data}
               onChange={(next) => updateSection(idx, next)}
               onRemove={() => removeSection(idx)}
+              isOpen={idx === expandedIndex}
+              onToggle={() => setExpandedIndex(idx)}
+              autoFocusType={section.justAdded}
             />
           ))}
 

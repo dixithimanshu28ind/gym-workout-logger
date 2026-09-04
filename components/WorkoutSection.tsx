@@ -4,19 +4,29 @@ import { useState } from "react";
 import type { ExerciseData, EffortType, WorkoutSectionData } from "@/lib/types";
 import WorkoutTypeSelect from "@/components/WorkoutTypeSelect";
 import Modal from "@/components/Modal";
+import { CollapsibleSection } from "@/components/ProgramPlan";
 import { OTHER_WORKOUT_TYPE } from "@/lib/workoutTypes";
 
 interface WorkoutSectionProps {
-  label: string;
   value: WorkoutSectionData;
   onChange: (value: WorkoutSectionData) => void;
   onRemove?: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
+  autoFocusType?: boolean;
 }
 
 const emptySet = () => ({ effort_type: "weight" as EffortType, effort_value: 0, reps: 0 });
 const emptyExercise = (): ExerciseData => ({ name: "", sets: [emptySet()] });
 
-export default function WorkoutSection({ label, value, onChange, onRemove }: WorkoutSectionProps) {
+export default function WorkoutSection({
+  value,
+  onChange,
+  onRemove,
+  isOpen,
+  onToggle,
+  autoFocusType,
+}: WorkoutSectionProps) {
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const handleTypeChange = (type: string) => {
@@ -77,42 +87,55 @@ export default function WorkoutSection({ label, value, onChange, onRemove }: Wor
     else onRemove?.();
   };
 
+  const displayType =
+    value.workout_type === OTHER_WORKOUT_TYPE && value.workout_type_custom
+      ? value.workout_type_custom
+      : value.workout_type;
+  const summaryLabel =
+    value.workout_type === ""
+      ? "New Workout"
+      : `${displayType} · ${value.exercises.length} exercise${value.exercises.length === 1 ? "" : "s"}`;
+
   return (
-    <div className="space-y-4 rounded-xl border border-card-border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-neutral-500">{label}</h3>
+    <CollapsibleSection title={summaryLabel} isOpen={isOpen} onToggle={onToggle} allowOverflow>
+      <div className="space-y-4">
         {onRemove && (
-          <button
-            type="button"
-            onClick={requestRemove}
-            className="text-sm text-red-600 hover:underline"
-          >
-            Remove Workout
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={requestRemove}
+              className="text-sm text-red-600 hover:underline"
+            >
+              Remove Workout
+            </button>
+          </div>
         )}
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Workout Type</label>
-        <WorkoutTypeSelect value={value.workout_type} onChange={handleTypeChange} />
-      </div>
-
-      {value.workout_type === OTHER_WORKOUT_TYPE && (
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Add your own workout type (optional)
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. Boxing, Swimming, Yoga"
-            value={value.workout_type_custom ?? ""}
-            onChange={(e) => onChange({ ...value, workout_type_custom: e.target.value })}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent sm:w-1/2"
+          <label className="block text-sm font-medium mb-1">Workout Type</label>
+          <WorkoutTypeSelect
+            value={value.workout_type}
+            onChange={handleTypeChange}
+            autoFocus={autoFocusType}
           />
         </div>
-      )}
 
-      {value.workout_type !== "" && (
+        {value.workout_type === OTHER_WORKOUT_TYPE && (
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Add your own workout type (optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Boxing, Swimming, Yoga"
+              value={value.workout_type_custom ?? ""}
+              onChange={(e) => onChange({ ...value, workout_type_custom: e.target.value })}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent sm:w-1/2"
+            />
+          </div>
+        )}
+
+        {value.workout_type !== "" && (
         <div className="space-y-4">
           {value.exercises.map((ex, exIdx) => (
             <div key={exIdx} className="rounded-xl border border-card-border bg-background p-4 space-y-3">
@@ -217,6 +240,7 @@ export default function WorkoutSection({ label, value, onChange, onRemove }: Wor
           </div>
         </Modal>
       )}
-    </div>
+      </div>
+    </CollapsibleSection>
   );
 }

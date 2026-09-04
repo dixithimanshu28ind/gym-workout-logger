@@ -6,9 +6,10 @@ import { WORKOUT_TYPES } from "@/lib/workoutTypes";
 interface WorkoutTypeSelectProps {
   value: string;
   onChange: (value: string) => void;
+  autoFocus?: boolean;
 }
 
-export default function WorkoutTypeSelect({ value, onChange }: WorkoutTypeSelectProps) {
+export default function WorkoutTypeSelect({ value, onChange, autoFocus }: WorkoutTypeSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +50,7 @@ export default function WorkoutTypeSelect({ value, onChange }: WorkoutTypeSelect
     <div ref={containerRef} className="relative">
       <button
         type="button"
+        autoFocus={autoFocus}
         onClick={() => {
           setQuery("");
           setOpen((o) => !o);

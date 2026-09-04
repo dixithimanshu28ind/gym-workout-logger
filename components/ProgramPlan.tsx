@@ -14,14 +14,18 @@ export function CollapsibleSection({
   isOpen,
   onToggle,
   children,
+  allowOverflow = false,
 }: {
   title: string;
   isOpen: boolean;
   onToggle: () => void;
   children: ReactNode;
+  allowOverflow?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-card-border bg-card overflow-hidden">
+    <div
+      className={`rounded-xl border border-card-border bg-card ${allowOverflow ? "" : "overflow-hidden"}`}
+    >
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
