@@ -4,7 +4,12 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchWorkoutDetail, updateWorkout, deleteWorkout } from "@/lib/workouts";
+import {
+  fetchWorkoutDetail,
+  fetchWorkoutSummaries,
+  updateWorkout,
+  deleteWorkout,
+} from "@/lib/workouts";
 import type { WorkoutFormData } from "@/lib/types";
 import WorkoutForm from "@/components/WorkoutForm";
 import AppShell from "@/components/AppShell";
@@ -20,6 +25,7 @@ export default function WorkoutDetailPage({
 
   const [workout, setWorkout] = useState<(WorkoutFormData & { id: string }) | null>(null);
   const [date, setDate] = useState<string | null>(null);
+  const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
   const [loadingWorkout, setLoadingWorkout] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -31,10 +37,11 @@ export default function WorkoutDetailPage({
       return;
     }
     if (user) {
-      fetchWorkoutDetail(id)
-        .then((w) => {
+      Promise.all([fetchWorkoutDetail(id), fetchWorkoutSummaries(user.id)])
+        .then(([w, summaries]) => {
           setWorkout(w);
           setDate(w.date);
+          setLoggedDates(new Set(summaries.map((s) => s.date)));
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load workout."))
         .finally(() => setLoadingWorkout(false));
@@ -129,6 +136,7 @@ export default function WorkoutDetailPage({
         <WorkoutForm
           date={date}
           onDateChange={setDate}
+          loggedDates={loggedDates}
           initialData={workout}
           onSubmit={handleSubmit}
           submitLabel="Save Changes"
