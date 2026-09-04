@@ -36,6 +36,8 @@ const emptySectionData = (): WorkoutSectionData => ({
 let clientKeyCounter = 0;
 const nextClientKey = () => `new-${Date.now()}-${clientKeyCounter++}`;
 
+const defaultExpandedIndex = (count: number): number | null => (count === 1 ? 0 : null);
+
 export default function NewWorkoutPage() {
   return (
     <Suspense fallback={null}>
@@ -58,7 +60,7 @@ function NewWorkoutPageInner() {
     () => prefilledDate ?? formatDateKey(new Date())
   );
   const [sections, setSections] = useState<SectionState[]>([]);
-  const [expandedIndex, setExpandedIndex] = useState(0);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
   const [initialSectionIds, setInitialSectionIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -118,7 +120,7 @@ function NewWorkoutPageInner() {
           }))
         );
         setInitialSectionIds(currentIdsForDate);
-        setExpandedIndex(0);
+        setExpandedIndex(defaultExpandedIndex(workouts.length));
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load workouts.");
@@ -134,8 +136,8 @@ function NewWorkoutPageInner() {
     if (ids.length === 0) {
       setSections([{ clientKey: nextClientKey(), data: emptySectionData() }]);
       setInitialSectionIds([]);
+      setExpandedIndex(0);
     }
-    setExpandedIndex(0);
   };
 
   const loggedDates = useMemo(() => new Set(dateToWorkoutIds.keys()), [dateToWorkoutIds]);
@@ -153,13 +155,19 @@ function NewWorkoutPageInner() {
   };
 
   const removeSection = (idx: number) => {
-    setSections((prev) => {
-      const next = prev.filter((_, i) => i !== idx);
-      return next.length > 0 ? next : [{ clientKey: nextClientKey(), data: emptySectionData() }];
-    });
+    const next = sections.filter((_, i) => i !== idx);
+    const finalSections =
+      next.length > 0 ? next : [{ clientKey: nextClientKey(), data: emptySectionData() }];
+    setSections(finalSections);
+
+    if (finalSections.length === 1) {
+      setExpandedIndex(0);
+      return;
+    }
     setExpandedIndex((prev) => {
+      if (prev === null) return null;
       if (idx < prev) return prev - 1;
-      if (idx === prev) return 0;
+      if (idx === prev) return null;
       return prev;
     });
   };
@@ -260,7 +268,7 @@ function NewWorkoutPageInner() {
               onChange={(next) => updateSection(idx, next)}
               onRemove={() => removeSection(idx)}
               isOpen={idx === expandedIndex}
-              onToggle={() => setExpandedIndex(idx)}
+              onToggle={() => setExpandedIndex((prev) => (prev === idx ? null : idx))}
               autoFocusType={section.justAdded}
             />
           ))}
