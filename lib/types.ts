@@ -9,12 +9,22 @@ export interface SetData {
   duration_unit?: DurationUnit | null;
 }
 
+export interface AltToggleInfo {
+  originalName: string;
+  originalMeasurementType: EffortType;
+  alternativeName: string;
+  alternativeMeasurementType: EffortType;
+  usingAlternative: boolean;
+}
+
 export interface ExerciseData {
   id?: string;
   name: string;
   sets: SetData[];
   /** Prescribed target shown as guidance when prefilled from a program, e.g. "8–12 reps". Display only — never persisted. */
   targetLabel?: string;
+  /** Program prefill: lets the user swap to/from the program's listed Alternative exercise (GYM-11 AC11/12). Display/UI only — never persisted. */
+  altToggle?: AltToggleInfo;
 }
 
 export interface WorkoutFormData {

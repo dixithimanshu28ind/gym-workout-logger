@@ -100,6 +100,26 @@ export default function WorkoutSection({
       ),
     });
 
+  const toggleAlternative = (exIdx: number) =>
+    onChange({
+      ...value,
+      exercises: value.exercises.map((ex, i) => {
+        if (i !== exIdx || !ex.altToggle) return ex;
+        const alt = ex.altToggle;
+        const switchingTo = alt.usingAlternative ? alt.originalMeasurementType : alt.alternativeMeasurementType;
+        return {
+          ...ex,
+          name: alt.usingAlternative ? alt.originalName : alt.alternativeName,
+          altToggle: { ...alt, usingAlternative: !alt.usingAlternative },
+          sets: ex.sets.map((s) => ({
+            ...s,
+            effort_type: switchingTo,
+            duration_unit: switchingTo === "duration" ? s.duration_unit ?? "min" : s.duration_unit,
+          })),
+        };
+      }),
+    });
+
   const updateSetType = (exIdx: number, setIdx: number, effortType: EffortType) =>
     onChange({
       ...value,
@@ -215,6 +235,23 @@ export default function WorkoutSection({
 
               {ex.targetLabel && (
                 <p className="text-xs text-neutral-500">Target: {ex.targetLabel}</p>
+              )}
+
+              {ex.altToggle && (
+                <p className="text-xs text-neutral-500">
+                  {ex.altToggle.usingAlternative ? (
+                    <>Using alternative for {ex.altToggle.originalName}</>
+                  ) : (
+                    <>Alternative: {ex.altToggle.alternativeName}</>
+                  )}{" "}
+                  <button
+                    type="button"
+                    onClick={() => toggleAlternative(exIdx)}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    {ex.altToggle.usingAlternative ? "Use Original" : "Use Alternative"}
+                  </button>
+                </p>
               )}
 
               <div className="space-y-2">

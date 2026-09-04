@@ -23,6 +23,7 @@ import {
 } from "@/lib/workoutTypes";
 import { validateWorkoutSection } from "@/lib/workoutValidation";
 import { getProgramDayList, getNextProgramDay, type ProgramDayRef } from "@/lib/programProgress";
+import { inferMeasurementType } from "@/lib/measurementHeuristic";
 import type { EffortType, SetData, WorkoutFormData, WorkoutSectionData } from "@/lib/types";
 import WorkoutDatePicker from "@/components/WorkoutDatePicker";
 import WorkoutSection from "@/components/WorkoutSection";
@@ -215,13 +216,24 @@ function NewWorkoutPageInner() {
       data: {
         workout_type: group.workoutType ?? "",
         workout_type_custom: null,
-        exercises: group.exercises.map((ex) => ({
-          name: ex.exercise,
-          targetLabel: ex.targetReps,
-          sets: Array.from({ length: ex.sets ?? 1 }, () =>
-            emptySetForType(ex.measurementType ?? "total_weight")
-          ),
-        })),
+        exercises: group.exercises.map((ex) => {
+          const measurementType = ex.measurementType ?? "total_weight";
+          return {
+            name: ex.exercise,
+            targetLabel: ex.targetReps,
+            sets: Array.from({ length: ex.sets ?? 1 }, () => emptySetForType(measurementType)),
+            altToggle:
+              ex.alternative && ex.alternative !== "—"
+                ? {
+                    originalName: ex.exercise,
+                    originalMeasurementType: measurementType,
+                    alternativeName: ex.alternative,
+                    alternativeMeasurementType: inferMeasurementType(ex.alternative),
+                    usingAlternative: false,
+                  }
+                : undefined,
+          };
+        }),
         program_id: selectedProgramId,
         program_day_key: ref.key,
       },
