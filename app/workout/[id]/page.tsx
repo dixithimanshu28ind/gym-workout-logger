@@ -19,6 +19,7 @@ export default function WorkoutDetailPage({
   const router = useRouter();
 
   const [workout, setWorkout] = useState<(WorkoutFormData & { id: string }) | null>(null);
+  const [date, setDate] = useState<string | null>(null);
   const [loadingWorkout, setLoadingWorkout] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -31,7 +32,10 @@ export default function WorkoutDetailPage({
     }
     if (user) {
       fetchWorkoutDetail(id)
-        .then(setWorkout)
+        .then((w) => {
+          setWorkout(w);
+          setDate(w.date);
+        })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load workout."))
         .finally(() => setLoadingWorkout(false));
     }
@@ -121,8 +125,14 @@ export default function WorkoutDetailPage({
         </p>
       )}
 
-      {workout && (
-        <WorkoutForm initialData={workout} onSubmit={handleSubmit} submitLabel="Save Changes" />
+      {workout && date && (
+        <WorkoutForm
+          date={date}
+          onDateChange={setDate}
+          initialData={workout}
+          onSubmit={handleSubmit}
+          submitLabel="Save Changes"
+        />
       )}
     </AppShell>
   );

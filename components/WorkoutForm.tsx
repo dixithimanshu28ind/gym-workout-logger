@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import type { WorkoutFormData, ExerciseData, EffortType } from "@/lib/types";
+import WorkoutDatePicker from "@/components/WorkoutDatePicker";
 
 interface WorkoutFormProps {
-  initialData?: WorkoutFormData;
+  date: string;
+  onDateChange: (date: string) => void;
+  loggedDates?: Set<string>;
+  initialData?: Pick<WorkoutFormData, "workout_type" | "exercises">;
   onSubmit: (data: WorkoutFormData) => Promise<void>;
   submitLabel: string;
 }
@@ -12,8 +16,14 @@ interface WorkoutFormProps {
 const emptySet = () => ({ effort_type: "weight" as EffortType, effort_value: 0, reps: 0 });
 const emptyExercise = (): ExerciseData => ({ name: "", sets: [emptySet()] });
 
-export default function WorkoutForm({ initialData, onSubmit, submitLabel }: WorkoutFormProps) {
-  const [date, setDate] = useState(initialData?.date ?? new Date().toISOString().slice(0, 10));
+export default function WorkoutForm({
+  date,
+  onDateChange,
+  loggedDates,
+  initialData,
+  onSubmit,
+  submitLabel,
+}: WorkoutFormProps) {
   const [workoutType, setWorkoutType] = useState(initialData?.workout_type ?? "");
   const [exercises, setExercises] = useState<ExerciseData[]>(
     initialData?.exercises ?? []
@@ -100,16 +110,8 @@ export default function WorkoutForm({ initialData, onSubmit, submitLabel }: Work
     <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="date" className="block text-sm font-medium mb-1">
-            Date
-          </label>
-          <input
-            id="date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-          />
+          <label className="block text-sm font-medium mb-1">Date</label>
+          <WorkoutDatePicker value={date} onChange={onDateChange} loggedDates={loggedDates} />
         </div>
         <div>
           <label htmlFor="workoutType" className="block text-sm font-medium mb-1">

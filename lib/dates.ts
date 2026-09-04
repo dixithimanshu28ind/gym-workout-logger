@@ -39,3 +39,34 @@ export function getWeekRange(date: Date): { start: Date; end: Date } {
   const end = addDays(start, 6);
   return { start, end };
 }
+
+export interface MonthGridCell {
+  date: Date;
+  dateKey: string;
+  inCurrentMonth: boolean;
+}
+
+/**
+ * 6-week Monday-start grid for the month containing `monthDate`, so calendar
+ * layouts stay a fixed 42-cell size across months.
+ */
+export function getMonthGridWeeks(monthDate: Date): MonthGridCell[][] {
+  const firstOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const gridStart = getWeekRange(firstOfMonth).start;
+
+  const weeks: MonthGridCell[][] = [];
+  let cursor = gridStart;
+  for (let week = 0; week < 6; week++) {
+    const days: MonthGridCell[] = [];
+    for (let day = 0; day < 7; day++) {
+      days.push({
+        date: cursor,
+        dateKey: formatDateKey(cursor),
+        inCurrentMonth: cursor.getMonth() === monthDate.getMonth(),
+      });
+      cursor = addDays(cursor, 1);
+    }
+    weeks.push(days);
+  }
+  return weeks;
+}
