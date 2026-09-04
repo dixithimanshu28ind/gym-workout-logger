@@ -26,7 +26,7 @@ export async function fetchWorkoutDetail(
   const { data, error } = await supabase
     .from("workouts")
     .select(
-      "id, date, workout_type, workout_type_custom, exercises(id, name, sets(id, effort_type, effort_value, reps, duration_unit))"
+      "id, date, workout_type, workout_type_custom, program_id, program_day_key, exercises(id, name, sets(id, effort_type, effort_value, reps, duration_unit))"
     )
     .eq("id", workoutId)
     .single();
@@ -38,6 +38,8 @@ export async function fetchWorkoutDetail(
     date: data.date,
     workout_type: data.workout_type,
     workout_type_custom: data.workout_type_custom,
+    program_id: data.program_id,
+    program_day_key: data.program_day_key,
     exercises: (data.exercises ?? []).map((ex) => ({
       id: ex.id,
       name: ex.name,
@@ -63,6 +65,8 @@ export async function createWorkout(userId: string, form: WorkoutFormData): Prom
       date: form.date,
       workout_type: form.workout_type,
       workout_type_custom: form.workout_type_custom ?? null,
+      program_id: form.program_id ?? null,
+      program_day_key: form.program_day_key ?? null,
     })
     .select("id")
     .single();
@@ -81,6 +85,8 @@ export async function updateWorkout(workoutId: string, form: WorkoutFormData): P
       date: form.date,
       workout_type: form.workout_type,
       workout_type_custom: form.workout_type_custom ?? null,
+      program_id: form.program_id ?? null,
+      program_day_key: form.program_day_key ?? null,
     })
     .eq("id", workoutId);
 
@@ -95,6 +101,28 @@ export async function updateWorkout(workoutId: string, form: WorkoutFormData): P
   if (deleteError) throw new Error(deleteError.message);
 
   await insertExercises(workoutId, form.exercises);
+}
+
+/**
+ * Program day keys that already have at least one saved workout for this
+ * user + program. GYM-11 Pass 1 treats a program day as "done" purely on
+ * this existence check (no partial-completion percentage yet — see
+ * lib/programProgress.ts).
+ */
+export async function fetchCompletedProgramDayKeys(
+  userId: string,
+  programId: string
+): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("workouts")
+    .select("program_day_key")
+    .eq("user_id", userId)
+    .eq("program_id", programId)
+    .not("program_day_key", "is", null);
+
+  if (error) throw new Error(error.message);
+
+  return new Set((data ?? []).map((w) => w.program_day_key as string));
 }
 
 export async function deleteWorkout(workoutId: string): Promise<void> {

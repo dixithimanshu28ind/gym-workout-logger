@@ -13,6 +13,8 @@ export interface ExerciseData {
   id?: string;
   name: string;
   sets: SetData[];
+  /** Prescribed target shown as guidance when prefilled from a program, e.g. "8–12 reps". Display only — never persisted. */
+  targetLabel?: string;
 }
 
 export interface WorkoutFormData {
@@ -20,6 +22,10 @@ export interface WorkoutFormData {
   workout_type: string;
   workout_type_custom?: string | null;
   exercises: ExerciseData[];
+  /** Which pre-designed program this workout fulfills, if any (GYM-11). */
+  program_id?: string | null;
+  /** Which program day (e.g. "weeks-1-5:1") this workout fulfills, if any (GYM-11). */
+  program_day_key?: string | null;
 }
 
 export interface WorkoutSectionData {
@@ -27,6 +33,8 @@ export interface WorkoutSectionData {
   workout_type: string;
   workout_type_custom?: string | null;
   exercises: ExerciseData[];
+  program_id?: string | null;
+  program_day_key?: string | null;
 }
 
 export interface WorkoutSummary {
@@ -68,12 +76,21 @@ export interface ExerciseRow {
   exercise: string;
   target: string;
   setsReps: string;
+  /** Number of sets to prefill. Only populated for programs reworked for GYM-11 prefill support. */
+  sets?: number;
+  /** Display-only target range for the prefilled sets, e.g. "8–12 reps" or "30–60 sec". */
+  targetReps?: string;
+  /** Measurement type to preselect on each prefilled set. */
+  measurementType?: EffortType;
   rest: string;
+  /** Alternative exercise name, or "—" if none. */
   alternative: string;
 }
 
 export interface ExerciseGroup {
   heading?: string;
+  /** Workout Type this group prefills as its own Workout section. Only populated for programs reworked for GYM-11 prefill support. */
+  workoutType?: string;
   exercises: ExerciseRow[];
 }
 

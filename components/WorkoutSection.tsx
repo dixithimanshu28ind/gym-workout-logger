@@ -213,6 +213,10 @@ export default function WorkoutSection({
                 </button>
               </div>
 
+              {ex.targetLabel && (
+                <p className="text-xs text-neutral-500">Target: {ex.targetLabel}</p>
+              )}
+
               <div className="space-y-2">
                 {ex.sets.map((s, setIdx) => (
                   <div key={setIdx} className="flex flex-wrap items-center gap-2">

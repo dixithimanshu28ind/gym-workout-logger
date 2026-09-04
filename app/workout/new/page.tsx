@@ -9,6 +9,7 @@ import { getProgramById } from "@/lib/programs";
 import {
   createWorkout,
   deleteWorkout,
+  fetchCompletedProgramDayKeys,
   fetchWorkoutDetail,
   fetchWorkoutSummaries,
   updateWorkout,
@@ -21,10 +22,12 @@ import {
   WORKOUT_TYPES,
 } from "@/lib/workoutTypes";
 import { validateWorkoutSection } from "@/lib/workoutValidation";
-import type { WorkoutFormData, WorkoutSectionData } from "@/lib/types";
+import { getProgramDayList, getNextProgramDay, type ProgramDayRef } from "@/lib/programProgress";
+import type { EffortType, SetData, WorkoutFormData, WorkoutSectionData } from "@/lib/types";
 import WorkoutDatePicker from "@/components/WorkoutDatePicker";
 import WorkoutSection from "@/components/WorkoutSection";
 import AppShell from "@/components/AppShell";
+import Modal from "@/components/Modal";
 
 interface SectionState {
   clientKey: string;
@@ -85,6 +88,9 @@ function NewWorkoutPageInner() {
   const [initialSectionIds, setInitialSectionIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [completedProgramDayKeys, setCompletedProgramDayKeys] = useState<Set<string>>(new Set());
+  const [dismissedForDate, setDismissedForDate] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -94,7 +100,8 @@ function NewWorkoutPageInner() {
     if (user) {
       Promise.all([fetchProfile(user.id), fetchWorkoutSummaries(user.id)])
         .then(([profile, summaries]) => {
-          setSelectedProgramId(profile?.selected_program_id ?? null);
+          const programId = profile?.selected_program_id ?? null;
+          setSelectedProgramId(programId);
           const map = new Map<string, string[]>();
           for (const w of summaries) {
             const ids = map.get(w.date) ?? [];
@@ -107,6 +114,11 @@ function NewWorkoutPageInner() {
             setInitialSectionIds([]);
             setExpandedIndex(0);
           }
+          return programId;
+        })
+        .then((programId) => {
+          if (!programId) return;
+          return fetchCompletedProgramDayKeys(user.id, programId).then(setCompletedProgramDayKeys);
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load workout data."))
         .finally(() => setLoadingPage(false));
@@ -163,6 +175,74 @@ function NewWorkoutPageInner() {
 
   const loggedDates = useMemo(() => new Set(dateToWorkoutIds.keys()), [dateToWorkoutIds]);
   const selectedProgram = getProgramById(selectedProgramId);
+
+  const nextProgramDay = useMemo(
+    () => (selectedProgramId ? getNextProgramDay(selectedProgramId, completedProgramDayKeys) : undefined),
+    [selectedProgramId, completedProgramDayKeys]
+  );
+  const showRecommendation =
+    !!selectedProgramId &&
+    !!nextProgramDay &&
+    currentIdsForDate.length === 0 &&
+    dismissedForDate !== selectedDate;
+
+  const emptySetForType = (measurementType: EffortType): SetData => ({
+    effort_type: measurementType,
+    effort_value: 0,
+    reps: 0,
+    duration_unit: measurementType === "duration" ? "min" : undefined,
+  });
+
+  const sectionsFromProgramDay = (ref: ProgramDayRef): SectionState[] => {
+    const groups = ref.day.groups;
+    if (!groups || groups.length === 0) {
+      // HIIT / rounds-only day — no structured exercise list to prefill.
+      return [
+        {
+          clientKey: nextClientKey(),
+          data: {
+            workout_type: "HIIT",
+            workout_type_custom: null,
+            exercises: [],
+            program_id: selectedProgramId,
+            program_day_key: ref.key,
+          },
+        },
+      ];
+    }
+    return groups.map((group) => ({
+      clientKey: nextClientKey(),
+      data: {
+        workout_type: group.workoutType ?? "",
+        workout_type_custom: null,
+        exercises: group.exercises.map((ex) => ({
+          name: ex.exercise,
+          targetLabel: ex.targetReps,
+          sets: Array.from({ length: ex.sets ?? 1 }, () =>
+            emptySetForType(ex.measurementType ?? "total_weight")
+          ),
+        })),
+        program_id: selectedProgramId,
+        program_day_key: ref.key,
+      },
+    }));
+  };
+
+  const applyProgramDay = (ref: ProgramDayRef) => {
+    const built = sectionsFromProgramDay(ref);
+    setSections(built);
+    setInitialSectionIds([]);
+    setExpandedIndex(defaultExpandedIndex(built.length));
+    setDismissedForDate(selectedDate);
+    setPickerOpen(false);
+  };
+
+  const logSomethingElse = () => {
+    setSections([{ clientKey: nextClientKey(), data: emptySectionData() }]);
+    setInitialSectionIds([]);
+    setExpandedIndex(0);
+    setDismissedForDate(selectedDate);
+  };
 
   const updateSection = (idx: number, next: WorkoutSectionData) =>
     setSections((prev) => prev.map((s, i) => (i === idx ? { ...s, data: next } : s)));
@@ -224,6 +304,8 @@ function NewWorkoutPageInner() {
                 ? s.data.workout_type_custom?.trim() || null
                 : null,
             exercises: s.data.exercises,
+            program_id: s.data.program_id ?? null,
+            program_day_key: s.data.program_day_key ?? null,
           };
           return s.data.id ? updateWorkout(s.data.id, payload) : createWorkout(user.id, payload);
         }),
@@ -278,9 +360,67 @@ function NewWorkoutPageInner() {
         </div>
       </div>
 
+      {showRecommendation && nextProgramDay && (
+        <div className="rounded-xl border border-card-border bg-card p-4 space-y-3">
+          <div>
+            <p className="font-medium">
+              Up next: {nextProgramDay.day.title.replace(/^Day \d+ — /, "")}
+            </p>
+            <p className="text-sm text-neutral-500">
+              Day {nextProgramDay.day.day} of your {selectedProgram?.name}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => applyProgramDay(nextProgramDay)}
+              className="rounded-lg bg-accent text-accent-foreground font-medium px-4 py-2 text-sm hover:opacity-90 transition"
+            >
+              Use This Workout
+            </button>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium hover:bg-background transition"
+            >
+              Choose Another Program Workout
+            </button>
+            <button
+              type="button"
+              onClick={logSomethingElse}
+              className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium hover:bg-background transition"
+            >
+              Log Something Else
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pickerOpen && (
+        <Modal onClose={() => setPickerOpen(false)}>
+          <p className="font-medium mb-3">Choose a program workout</p>
+          <div className="max-h-80 space-y-1 overflow-y-auto">
+            {getProgramDayList(selectedProgramId).map((ref) => {
+              const done = completedProgramDayKeys.has(ref.key);
+              return (
+                <button
+                  key={ref.key}
+                  type="button"
+                  onClick={() => applyProgramDay(ref)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-background transition"
+                >
+                  <span>{ref.day.title.replace(/^Day \d+ — /, "")}</span>
+                  {done && <span className="text-xs text-accent">Completed</span>}
+                </button>
+              );
+            })}
+          </div>
+        </Modal>
+      )}
+
       {loadingSections ? (
         <p className="text-neutral-500">Loading workouts...</p>
-      ) : (
+      ) : showRecommendation ? null : (
         <div className="space-y-6">
           {sections.map((section, idx) => (
             <WorkoutSection
