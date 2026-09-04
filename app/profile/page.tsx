@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProfile, upsertProfile } from "@/lib/profile";
+import { getProgramById } from "@/lib/programs";
 import type { GymExperience, Profile } from "@/lib/types";
 import AppShell from "@/components/AppShell";
 
@@ -26,6 +28,7 @@ export default function ProfilePage() {
   const [weightKg, setWeightKg] = useState("");
   const [targetWeightKg, setTargetWeightKg] = useState("");
   const [gymExperience, setGymExperience] = useState<GymExperience | "">("");
+  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +47,7 @@ export default function ProfilePage() {
           setWeightKg(profile.weight_kg?.toString() ?? "");
           setTargetWeightKg(profile.target_weight_kg?.toString() ?? "");
           setGymExperience(profile.gym_experience ?? "");
+          setSelectedProgramId(profile.selected_program_id ?? null);
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load profile."))
         .finally(() => setLoadingProfile(false));
@@ -82,8 +86,25 @@ export default function ProfilePage() {
     }
   };
 
+  const selectedProgram = getProgramById(selectedProgramId);
+
   return (
     <AppShell title="Profile">
+      <div className="rounded-xl border border-card-border bg-card p-5 max-w-md">
+        <p className="text-xs uppercase tracking-wide text-neutral-500">Current Program</p>
+        {selectedProgram ? (
+          <>
+            <p className="mt-1 font-display text-lg tracking-wide">{selectedProgram.name}</p>
+            <p className="text-sm text-neutral-500">{selectedProgram.subtitle}</p>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-neutral-500">No program selected yet.</p>
+        )}
+        <Link href="/programs" className="mt-2 inline-block text-sm text-accent hover:underline">
+          {selectedProgram ? "Change program" : "Browse programs"}
+        </Link>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4 max-w-md" noValidate>
         <div>
           <label htmlFor="name" className="block text-sm font-medium mb-1">
