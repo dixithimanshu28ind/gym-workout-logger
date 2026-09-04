@@ -5,7 +5,7 @@ import type { ExerciseData, EffortType, WorkoutSectionData } from "@/lib/types";
 import WorkoutTypeSelect from "@/components/WorkoutTypeSelect";
 import Modal from "@/components/Modal";
 import { CollapsibleSection } from "@/components/ProgramPlan";
-import { OTHER_WORKOUT_TYPE } from "@/lib/workoutTypes";
+import { OTHER_WORKOUT_TYPE, REST_DAY_WORKOUT_TYPE } from "@/lib/workoutTypes";
 
 interface WorkoutSectionProps {
   value: WorkoutSectionData;
@@ -14,6 +14,7 @@ interface WorkoutSectionProps {
   isOpen: boolean;
   onToggle: () => void;
   autoFocusType?: boolean;
+  allowedTypes?: readonly string[];
 }
 
 const emptySet = () => ({ effort_type: "weight" as EffortType, effort_value: 0, reps: 0 });
@@ -26,14 +27,21 @@ export default function WorkoutSection({
   isOpen,
   onToggle,
   autoFocusType,
+  allowedTypes,
 }: WorkoutSectionProps) {
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [blockedRestDayChange, setBlockedRestDayChange] = useState(false);
 
   const handleTypeChange = (type: string) => {
+    if (type === REST_DAY_WORKOUT_TYPE && value.exercises.length > 0) {
+      setBlockedRestDayChange(true);
+      return;
+    }
     onChange({
       ...value,
       workout_type: type,
       workout_type_custom: type === OTHER_WORKOUT_TYPE ? value.workout_type_custom : null,
+      exercises: type === REST_DAY_WORKOUT_TYPE ? [] : value.exercises,
     });
   };
 
@@ -117,6 +125,7 @@ export default function WorkoutSection({
             value={value.workout_type}
             onChange={handleTypeChange}
             autoFocus={autoFocusType}
+            allowedTypes={allowedTypes}
           />
         </div>
 
@@ -135,7 +144,21 @@ export default function WorkoutSection({
           </div>
         )}
 
-        {value.workout_type !== "" && (
+        {value.workout_type === REST_DAY_WORKOUT_TYPE && (
+          <div className="rounded-xl border border-card-border bg-background p-4 space-y-2">
+            <p className="font-medium">Enjoy your Rest Day 🙌</p>
+            <p className="text-sm text-neutral-600">
+              Recovery is an important part of training. It gives your body time to recover and
+              prepare for your next workout.
+            </p>
+            <p className="text-sm text-neutral-600">
+              Doing some light activity? You can still add Cardio, Mobility / Recovery, or Other
+              for activities such as an easy walk, stretching or yoga.
+            </p>
+          </div>
+        )}
+
+        {value.workout_type !== "" && value.workout_type !== REST_DAY_WORKOUT_TYPE && (
         <div className="space-y-4">
           {value.exercises.map((ex, exIdx) => (
             <div key={exIdx} className="rounded-xl border border-card-border bg-background p-4 space-y-3">
@@ -236,6 +259,24 @@ export default function WorkoutSection({
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
               Remove
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {blockedRestDayChange && (
+        <Modal onClose={() => setBlockedRestDayChange(false)} showCloseButton={false}>
+          <p className="font-medium">Remove exercises first</p>
+          <p className="mt-2 text-sm text-neutral-600">
+            Rest Day cannot contain exercises. Please remove the exercises from this workout
+            before changing it to Rest Day.
+          </p>
+          <div className="mt-5 flex justify-end">
+            <button
+              onClick={() => setBlockedRestDayChange(false)}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
+            >
+              Got it
             </button>
           </div>
         </Modal>

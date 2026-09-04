@@ -1,9 +1,11 @@
 import type { WorkoutSectionData } from "@/lib/types";
+import { REST_DAY_WORKOUT_TYPE } from "@/lib/workoutTypes";
 
 export function validateWorkoutSection(section: WorkoutSectionData, label: string): string[] {
   const errs: string[] = [];
   if (!section.workout_type) errs.push(`${label}: workout type is required.`);
-  if (section.exercises.length === 0) errs.push(`${label}: add at least one exercise.`);
+  if (section.workout_type !== REST_DAY_WORKOUT_TYPE && section.exercises.length === 0)
+    errs.push(`${label}: add at least one exercise.`);
 
   section.exercises.forEach((ex, i) => {
     if (!ex.name.trim()) errs.push(`${label}, Exercise ${i + 1}: name is required.`);

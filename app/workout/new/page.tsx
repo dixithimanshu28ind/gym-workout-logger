@@ -14,7 +14,12 @@ import {
   updateWorkout,
 } from "@/lib/workouts";
 import { formatDateKey } from "@/lib/dates";
-import { OTHER_WORKOUT_TYPE } from "@/lib/workoutTypes";
+import {
+  OTHER_WORKOUT_TYPE,
+  REST_DAY_COMPANION_TYPES,
+  REST_DAY_WORKOUT_TYPE,
+  WORKOUT_TYPES,
+} from "@/lib/workoutTypes";
 import { validateWorkoutSection } from "@/lib/workoutValidation";
 import type { WorkoutFormData, WorkoutSectionData } from "@/lib/types";
 import WorkoutDatePicker from "@/components/WorkoutDatePicker";
@@ -37,6 +42,22 @@ let clientKeyCounter = 0;
 const nextClientKey = () => `new-${Date.now()}-${clientKeyCounter++}`;
 
 const defaultExpandedIndex = (count: number): number | null => (count === 1 ? 0 : null);
+
+function allowedTypesFor(sections: SectionState[], idx: number): readonly string[] | undefined {
+  const siblingTypes = sections
+    .filter((_, i) => i !== idx)
+    .map((s) => s.data.workout_type)
+    .filter(Boolean);
+
+  if (siblingTypes.includes(REST_DAY_WORKOUT_TYPE)) return REST_DAY_COMPANION_TYPES;
+
+  const hasTrainingType = siblingTypes.some(
+    (t) => t !== REST_DAY_WORKOUT_TYPE && !(REST_DAY_COMPANION_TYPES as readonly string[]).includes(t)
+  );
+  if (hasTrainingType) return WORKOUT_TYPES.filter((t) => t !== REST_DAY_WORKOUT_TYPE);
+
+  return undefined;
+}
 
 export default function NewWorkoutPage() {
   return (
@@ -270,6 +291,7 @@ function NewWorkoutPageInner() {
               isOpen={idx === expandedIndex}
               onToggle={() => setExpandedIndex((prev) => (prev === idx ? null : idx))}
               autoFocusType={section.justAdded}
+              allowedTypes={allowedTypesFor(sections, idx)}
             />
           ))}
 

@@ -7,9 +7,15 @@ interface WorkoutTypeSelectProps {
   value: string;
   onChange: (value: string) => void;
   autoFocus?: boolean;
+  allowedTypes?: readonly string[];
 }
 
-export default function WorkoutTypeSelect({ value, onChange, autoFocus }: WorkoutTypeSelectProps) {
+export default function WorkoutTypeSelect({
+  value,
+  onChange,
+  autoFocus,
+  allowedTypes,
+}: WorkoutTypeSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,7 +43,8 @@ export default function WorkoutTypeSelect({ value, onChange, autoFocus }: Workou
     if (open) searchRef.current?.focus();
   }, [open]);
 
-  const filtered = WORKOUT_TYPES.filter((t) =>
+  const selectableTypes = allowedTypes ?? WORKOUT_TYPES;
+  const filtered = selectableTypes.filter((t) =>
     t.toLowerCase().includes(query.trim().toLowerCase())
   );
 
