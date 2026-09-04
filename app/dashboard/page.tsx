@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchWorkoutSummaries } from "@/lib/workouts";
 import { fetchProfile } from "@/lib/profile";
 import { getProgramById } from "@/lib/programs";
-import { computeCurrentStreak } from "@/lib/streak";
+import { computeCurrentStreak, computeLongestStreak } from "@/lib/streak";
 import type { WorkoutSummary } from "@/lib/types";
 import WeeklyWorkoutHistory from "@/components/WeeklyWorkoutHistory";
 import AppShell from "@/components/AppShell";
@@ -56,6 +56,8 @@ export default function DashboardPage() {
   }
 
   const streak = computeCurrentStreak(workouts.map((w) => w.date));
+  const longestStreak = computeLongestStreak(workouts.map((w) => w.date));
+  const isNewPersonalBest = streak > 0 && streak >= longestStreak.longestStreak;
   const selectedProgram = getProgramById(selectedProgramId);
   const hasProgram = !!selectedProgram;
   const hasWorkouts = workouts.length > 0;
@@ -72,6 +74,23 @@ export default function DashboardPage() {
         </Link>
       }
     >
+      {longestStreak.visible && (
+        <div className="rounded-2xl bg-accent text-accent-foreground p-6 flex items-center gap-4">
+          <span className="text-4xl" aria-hidden>
+            🏆
+          </span>
+          <div>
+            <p className="text-sm font-medium">Your Longest Streak</p>
+            <p className="font-display text-3xl tracking-wide">
+              {longestStreak.longestStreak} day{longestStreak.longestStreak === 1 ? "" : "s"}
+            </p>
+            <p className="text-sm">
+              {isNewPersonalBest ? "New personal best!" : "Your personal best — can you beat it?"}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl bg-sidebar text-sidebar-foreground p-6 flex items-center gap-4">
         <span className="text-4xl" aria-hidden>
           🔥
