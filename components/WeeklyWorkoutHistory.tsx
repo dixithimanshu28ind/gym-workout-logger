@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { WorkoutSummary } from "@/lib/types";
 import { addDays, formatDateKey, getWeekRange, parseLocalDateKey, weekdayName } from "@/lib/dates";
-import WorkoutSummaryCard from "@/components/WorkoutSummaryCard";
+import WorkoutDayTile from "@/components/WorkoutDayTile";
 
 function enumerateDateKeys(startKey: string, endKey: string): string[] {
   if (startKey > endKey) return [];
@@ -89,7 +89,7 @@ export default function WeeklyWorkoutHistory({ workouts }: { workouts: WorkoutSu
             if (dayWorkouts.length === 0) {
               return <MissedDayTile key={dateKey} dateKey={dateKey} />;
             }
-            return dayWorkouts.map((w) => <WorkoutSummaryCard key={w.id} workout={w} />);
+            return <WorkoutDayTile key={dateKey} dateKey={dateKey} workouts={dayWorkouts} />;
           })}
         </div>
       )}
