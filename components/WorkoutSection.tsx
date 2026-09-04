@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { ExerciseData, EffortType, WorkoutSectionData } from "@/lib/types";
+import type { DurationUnit, EffortType, ExerciseData, SetData, WorkoutSectionData } from "@/lib/types";
 import WorkoutTypeSelect from "@/components/WorkoutTypeSelect";
 import Modal from "@/components/Modal";
 import { CollapsibleSection } from "@/components/ProgramPlan";
 import { OTHER_WORKOUT_TYPE, REST_DAY_WORKOUT_TYPE } from "@/lib/workoutTypes";
+import { DURATION_UNIT_OPTIONS, EFFORT_TYPE_OPTIONS } from "@/lib/effortTypes";
 
 interface WorkoutSectionProps {
   value: WorkoutSectionData;
@@ -17,7 +18,7 @@ interface WorkoutSectionProps {
   allowedTypes?: readonly string[];
 }
 
-const emptySet = () => ({ effort_type: "weight" as EffortType, effort_value: 0, reps: 0 });
+const emptySet = (): SetData => ({ effort_type: "total_weight", effort_value: 0, reps: 0 });
 const emptyExercise = (): ExerciseData => ({ name: "", sets: [emptySet()] });
 
 export default function WorkoutSection({
@@ -60,9 +61,20 @@ export default function WorkoutSection({
   const addSet = (exIdx: number) =>
     onChange({
       ...value,
-      exercises: value.exercises.map((ex, i) =>
-        i === exIdx ? { ...ex, sets: [...ex.sets, emptySet()] } : ex
-      ),
+      exercises: value.exercises.map((ex, i) => {
+        if (i !== exIdx) return ex;
+        const lastSet = ex.sets[ex.sets.length - 1];
+        const nextSet: SetData = lastSet
+          ? {
+              effort_type: lastSet.effort_type,
+              effort_value: 0,
+              reps: 0,
+              duration_unit:
+                lastSet.effort_type === "duration" ? lastSet.duration_unit ?? "min" : undefined,
+            }
+          : emptySet();
+        return { ...ex, sets: [...ex.sets, nextSet] };
+      }),
     });
 
   const removeSet = (exIdx: number, setIdx: number) =>
@@ -76,7 +88,7 @@ export default function WorkoutSection({
   const updateSet = (
     exIdx: number,
     setIdx: number,
-    field: "effort_type" | "effort_value" | "reps",
+    field: "effort_value" | "reps" | "duration_unit",
     val: string | number
   ) =>
     onChange({
@@ -84,6 +96,28 @@ export default function WorkoutSection({
       exercises: value.exercises.map((ex, i) =>
         i === exIdx
           ? { ...ex, sets: ex.sets.map((s, j) => (j === setIdx ? { ...s, [field]: val } : s)) }
+          : ex
+      ),
+    });
+
+  const updateSetType = (exIdx: number, setIdx: number, effortType: EffortType) =>
+    onChange({
+      ...value,
+      exercises: value.exercises.map((ex, i) =>
+        i === exIdx
+          ? {
+              ...ex,
+              sets: ex.sets.map((s, j) =>
+                j === setIdx
+                  ? {
+                      ...s,
+                      effort_type: effortType,
+                      duration_unit:
+                        effortType === "duration" ? s.duration_unit ?? "min" : s.duration_unit,
+                    }
+                  : s
+              ),
+            }
           : ex
       ),
     });
@@ -185,32 +219,73 @@ export default function WorkoutSection({
                     <span className="text-xs text-neutral-500 w-12">Set {setIdx + 1}</span>
                     <select
                       value={s.effort_type}
-                      onChange={(e) => updateSet(exIdx, setIdx, "effort_type", e.target.value)}
+                      onChange={(e) =>
+                        updateSetType(exIdx, setIdx, e.target.value as EffortType)
+                      }
                       className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
                     >
-                      <option value="weight">Weight</option>
-                      <option value="duration">Duration</option>
+                      {EFFORT_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder={s.effort_type === "weight" ? "kg" : "min"}
-                      value={s.effort_value || ""}
-                      onChange={(e) =>
-                        updateSet(exIdx, setIdx, "effort_value", Number(e.target.value))
-                      }
-                      className="w-24 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="reps"
-                      value={s.reps || ""}
-                      onChange={(e) => updateSet(exIdx, setIdx, "reps", Number(e.target.value))}
-                      className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
-                    />
+
+                    {(s.effort_type === "total_weight" || s.effort_type === "weight_each") && (
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="kg"
+                        value={s.effort_value || ""}
+                        onChange={(e) =>
+                          updateSet(exIdx, setIdx, "effort_value", Number(e.target.value))
+                        }
+                        className="w-24 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
+                      />
+                    )}
+
+                    {s.effort_type === "duration" && (
+                      <>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="duration"
+                          value={s.effort_value || ""}
+                          onChange={(e) =>
+                            updateSet(exIdx, setIdx, "effort_value", Number(e.target.value))
+                          }
+                          className="w-24 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
+                        />
+                        <select
+                          value={s.duration_unit ?? "min"}
+                          onChange={(e) =>
+                            updateSet(exIdx, setIdx, "duration_unit", e.target.value as DurationUnit)
+                          }
+                          className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
+                        >
+                          {DURATION_UNIT_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+
+                    {s.effort_type !== "duration" && (
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="reps"
+                        value={s.reps || ""}
+                        onChange={(e) => updateSet(exIdx, setIdx, "reps", Number(e.target.value))}
+                        className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
+                      />
+                    )}
+
                     <button
                       type="button"
                       onClick={() => removeSet(exIdx, setIdx)}

@@ -1,10 +1,12 @@
-export type EffortType = "weight" | "duration";
+export type EffortType = "total_weight" | "weight_each" | "bodyweight" | "duration";
+export type DurationUnit = "min" | "sec";
 
 export interface SetData {
   id?: string;
   effort_type: EffortType;
   effort_value: number;
   reps: number;
+  duration_unit?: DurationUnit | null;
 }
 
 export interface ExerciseData {

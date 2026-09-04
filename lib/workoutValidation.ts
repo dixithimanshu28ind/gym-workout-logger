@@ -11,10 +11,21 @@ export function validateWorkoutSection(section: WorkoutSectionData, label: strin
     if (!ex.name.trim()) errs.push(`${label}, Exercise ${i + 1}: name is required.`);
     if (ex.sets.length === 0) errs.push(`${label}, Exercise ${i + 1}: add at least one set.`);
     ex.sets.forEach((s, j) => {
-      if (!(s.effort_value > 0))
-        errs.push(`${label}, Exercise ${i + 1}, Set ${j + 1}: effort must be a positive number.`);
-      if (!(s.reps > 0))
-        errs.push(`${label}, Exercise ${i + 1}, Set ${j + 1}: reps must be a positive number.`);
+      const setLabel = `${label}, Exercise ${i + 1}, Set ${j + 1}`;
+      switch (s.effort_type) {
+        case "total_weight":
+        case "weight_each":
+          if (!(s.effort_value > 0)) errs.push(`${setLabel}: weight must be a positive number.`);
+          if (!(s.reps > 0)) errs.push(`${setLabel}: reps must be a positive number.`);
+          break;
+        case "bodyweight":
+          if (!(s.reps > 0)) errs.push(`${setLabel}: reps must be a positive number.`);
+          break;
+        case "duration":
+          if (!(s.effort_value > 0)) errs.push(`${setLabel}: duration must be a positive number.`);
+          if (!s.duration_unit) errs.push(`${setLabel}: duration unit is required.`);
+          break;
+      }
     });
   });
 

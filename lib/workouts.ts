@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { WorkoutFormData, WorkoutSummary } from "@/lib/types";
+import { normalizeEffortType } from "@/lib/effortTypes";
 
 export async function fetchWorkoutSummaries(userId: string): Promise<WorkoutSummary[]> {
   const { data, error } = await supabase
@@ -25,7 +26,7 @@ export async function fetchWorkoutDetail(
   const { data, error } = await supabase
     .from("workouts")
     .select(
-      "id, date, workout_type, workout_type_custom, exercises(id, name, sets(id, effort_type, effort_value, reps))"
+      "id, date, workout_type, workout_type_custom, exercises(id, name, sets(id, effort_type, effort_value, reps, duration_unit))"
     )
     .eq("id", workoutId)
     .single();
@@ -40,12 +41,16 @@ export async function fetchWorkoutDetail(
     exercises: (data.exercises ?? []).map((ex) => ({
       id: ex.id,
       name: ex.name,
-      sets: (ex.sets ?? []).map((s) => ({
-        id: s.id,
-        effort_type: s.effort_type,
-        effort_value: s.effort_value,
-        reps: s.reps,
-      })),
+      sets: (ex.sets ?? []).map((s) => {
+        const effort_type = normalizeEffortType(s.effort_type);
+        return {
+          id: s.id,
+          effort_type,
+          effort_value: s.effort_value,
+          reps: s.reps,
+          duration_unit: effort_type === "duration" ? (s.duration_unit ?? "min") : undefined,
+        };
+      }),
     })),
   };
 }
@@ -112,6 +117,7 @@ async function insertExercises(workoutId: string, exercises: WorkoutFormData["ex
       effort_type: s.effort_type,
       effort_value: s.effort_value,
       reps: s.reps,
+      duration_unit: s.effort_type === "duration" ? (s.duration_unit ?? "min") : null,
     }));
 
     const { error: setsError } = await supabase.from("sets").insert(setsPayload);
