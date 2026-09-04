@@ -20,6 +20,13 @@ export interface WorkoutFormData {
   exercises: ExerciseData[];
 }
 
+export interface WorkoutSectionData {
+  id?: string;
+  workout_type: string;
+  workout_type_custom?: string | null;
+  exercises: ExerciseData[];
+}
+
 export interface WorkoutSummary {
   id: string;
   date: string;
