@@ -4,7 +4,7 @@ import type { WorkoutFormData, WorkoutSummary } from "@/lib/types";
 export async function fetchWorkoutSummaries(userId: string): Promise<WorkoutSummary[]> {
   const { data, error } = await supabase
     .from("workouts")
-    .select("id, date, workout_type, exercises(id)")
+    .select("id, date, workout_type, workout_type_custom, exercises(id)")
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
@@ -14,6 +14,7 @@ export async function fetchWorkoutSummaries(userId: string): Promise<WorkoutSumm
     id: w.id,
     date: w.date,
     workout_type: w.workout_type,
+    workout_type_custom: w.workout_type_custom,
     exerciseCount: Array.isArray(w.exercises) ? w.exercises.length : 0,
   }));
 }
@@ -23,7 +24,9 @@ export async function fetchWorkoutDetail(
 ): Promise<WorkoutFormData & { id: string }> {
   const { data, error } = await supabase
     .from("workouts")
-    .select("id, date, workout_type, exercises(id, name, sets(id, effort_type, effort_value, reps))")
+    .select(
+      "id, date, workout_type, workout_type_custom, exercises(id, name, sets(id, effort_type, effort_value, reps))"
+    )
     .eq("id", workoutId)
     .single();
 
@@ -33,6 +36,7 @@ export async function fetchWorkoutDetail(
     id: data.id,
     date: data.date,
     workout_type: data.workout_type,
+    workout_type_custom: data.workout_type_custom,
     exercises: (data.exercises ?? []).map((ex) => ({
       id: ex.id,
       name: ex.name,
@@ -49,7 +53,12 @@ export async function fetchWorkoutDetail(
 export async function createWorkout(userId: string, form: WorkoutFormData): Promise<string> {
   const { data: workout, error: workoutError } = await supabase
     .from("workouts")
-    .insert({ user_id: userId, date: form.date, workout_type: form.workout_type })
+    .insert({
+      user_id: userId,
+      date: form.date,
+      workout_type: form.workout_type,
+      workout_type_custom: form.workout_type_custom ?? null,
+    })
     .select("id")
     .single();
 
@@ -63,7 +72,11 @@ export async function createWorkout(userId: string, form: WorkoutFormData): Prom
 export async function updateWorkout(workoutId: string, form: WorkoutFormData): Promise<void> {
   const { error: updateError } = await supabase
     .from("workouts")
-    .update({ date: form.date, workout_type: form.workout_type })
+    .update({
+      date: form.date,
+      workout_type: form.workout_type,
+      workout_type_custom: form.workout_type_custom ?? null,
+    })
     .eq("id", workoutId);
 
   if (updateError) throw new Error(updateError.message);

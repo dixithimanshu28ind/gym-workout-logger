@@ -3,12 +3,14 @@
 import { useState } from "react";
 import type { WorkoutFormData, ExerciseData, EffortType } from "@/lib/types";
 import WorkoutDatePicker from "@/components/WorkoutDatePicker";
+import WorkoutTypeSelect from "@/components/WorkoutTypeSelect";
+import { OTHER_WORKOUT_TYPE, isKnownWorkoutType } from "@/lib/workoutTypes";
 
 interface WorkoutFormProps {
   date: string;
   onDateChange: (date: string) => void;
   loggedDates?: Set<string>;
-  initialData?: Pick<WorkoutFormData, "workout_type" | "exercises">;
+  initialData?: Pick<WorkoutFormData, "workout_type" | "workout_type_custom" | "exercises">;
   onSubmit: (data: WorkoutFormData) => Promise<void>;
   submitLabel: string;
 }
@@ -24,12 +26,26 @@ export default function WorkoutForm({
   onSubmit,
   submitLabel,
 }: WorkoutFormProps) {
-  const [workoutType, setWorkoutType] = useState(initialData?.workout_type ?? "");
+  const initialType = initialData?.workout_type;
+  const resolvedInitialType = !initialData
+    ? ""
+    : initialType && isKnownWorkoutType(initialType)
+      ? initialType
+      : OTHER_WORKOUT_TYPE;
+  const [workoutType, setWorkoutType] = useState(resolvedInitialType);
+  const [customWorkoutType, setCustomWorkoutType] = useState(() =>
+    resolvedInitialType === OTHER_WORKOUT_TYPE ? initialData?.workout_type_custom ?? "" : ""
+  );
   const [exercises, setExercises] = useState<ExerciseData[]>(
     initialData?.exercises ?? []
   );
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const handleWorkoutTypeChange = (type: string) => {
+    setWorkoutType(type);
+    if (type !== OTHER_WORKOUT_TYPE) setCustomWorkoutType("");
+  };
 
   const addExercise = () => setExercises((prev) => [...prev, emptyExercise()]);
 
@@ -75,7 +91,7 @@ export default function WorkoutForm({
   const validate = (): string[] => {
     const errs: string[] = [];
     if (!date) errs.push("Date is required.");
-    if (!workoutType.trim()) errs.push("Workout type is required.");
+    if (!workoutType) errs.push("Workout type is required.");
     if (exercises.length === 0) errs.push("Add at least one exercise.");
 
     exercises.forEach((ex, i) => {
@@ -100,7 +116,12 @@ export default function WorkoutForm({
 
     setSubmitting(true);
     try {
-      await onSubmit({ date, workout_type: workoutType.trim(), exercises });
+      await onSubmit({
+        date,
+        workout_type: workoutType,
+        workout_type_custom: workoutType === OTHER_WORKOUT_TYPE ? customWorkoutType.trim() || null : null,
+        exercises,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -114,19 +135,26 @@ export default function WorkoutForm({
           <WorkoutDatePicker value={date} onChange={onDateChange} loggedDates={loggedDates} />
         </div>
         <div>
-          <label htmlFor="workoutType" className="block text-sm font-medium mb-1">
-            Workout Type
-          </label>
-          <input
-            id="workoutType"
-            type="text"
-            placeholder="e.g. Push, Pull, Legs, Cardio"
-            value={workoutType}
-            onChange={(e) => setWorkoutType(e.target.value)}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-          />
+          <label className="block text-sm font-medium mb-1">Workout Type</label>
+          <WorkoutTypeSelect value={workoutType} onChange={handleWorkoutTypeChange} />
         </div>
       </div>
+
+      {workoutType === OTHER_WORKOUT_TYPE && (
+        <div>
+          <label htmlFor="customWorkoutType" className="block text-sm font-medium mb-1">
+            Add your own workout type (optional)
+          </label>
+          <input
+            id="customWorkoutType"
+            type="text"
+            placeholder="e.g. Boxing, Swimming, Yoga"
+            value={customWorkoutType}
+            onChange={(e) => setCustomWorkoutType(e.target.value)}
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent sm:w-1/2"
+          />
+        </div>
+      )}
 
       <div className="space-y-4">
         {exercises.map((ex, exIdx) => (

@@ -16,6 +16,7 @@ export interface ExerciseData {
 export interface WorkoutFormData {
   date: string;
   workout_type: string;
+  workout_type_custom?: string | null;
   exercises: ExerciseData[];
 }
 
@@ -23,6 +24,7 @@ export interface WorkoutSummary {
   id: string;
   date: string;
   workout_type: string;
+  workout_type_custom: string | null;
   exerciseCount: number;
 }
 
