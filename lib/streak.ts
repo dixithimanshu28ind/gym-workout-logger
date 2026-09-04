@@ -1,9 +1,4 @@
-function toLocalDateKey(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+import { formatDateKey as toLocalDateKey } from "@/lib/dates";
 
 /**
  * Current consecutive-day streak, counted backward from today.

@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchWorkoutSummaries } from "@/lib/workouts";
+import { fetchProfile } from "@/lib/profile";
+import { getProgramById } from "@/lib/programs";
 import { computeCurrentStreak } from "@/lib/streak";
 import type { WorkoutSummary } from "@/lib/types";
-import WorkoutSummaryCard from "@/components/WorkoutSummaryCard";
+import WeeklyWorkoutHistory from "@/components/WeeklyWorkoutHistory";
 import AppShell from "@/components/AppShell";
 
 export default function DashboardPage() {
@@ -15,14 +17,19 @@ export default function DashboardPage() {
   const router = useRouter();
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(true);
+  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadWorkouts = useCallback(async (userId: string) => {
     setLoadingWorkouts(true);
     setError(null);
     try {
-      const data = await fetchWorkoutSummaries(userId);
+      const [data, profile] = await Promise.all([
+        fetchWorkoutSummaries(userId),
+        fetchProfile(userId),
+      ]);
       setWorkouts(data);
+      setSelectedProgramId(profile?.selected_program_id ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load workouts.");
     } finally {
@@ -49,6 +56,9 @@ export default function DashboardPage() {
   }
 
   const streak = computeCurrentStreak(workouts.map((w) => w.date));
+  const selectedProgram = getProgramById(selectedProgramId);
+  const hasProgram = !!selectedProgram;
+  const hasWorkouts = workouts.length > 0;
 
   return (
     <AppShell
@@ -82,16 +92,69 @@ export default function DashboardPage() {
 
       {loadingWorkouts ? (
         <p className="text-neutral-500">Loading workouts...</p>
-      ) : workouts.length === 0 ? (
-        <p className="text-neutral-500 text-center py-8">
-          No workouts logged yet. Log your first one above.
-        </p>
       ) : (
-        <div className="space-y-3">
-          {workouts.map((w) => (
-            <WorkoutSummaryCard key={w.id} workout={w} />
-          ))}
-        </div>
+        <>
+          {hasProgram && (
+            <p className="text-sm">
+              Your current plan is <span className="font-medium">{selectedProgram.name}</span>.
+            </p>
+          )}
+
+          {!hasWorkouts ? (
+            <div className="text-center py-8 space-y-1">
+              {hasProgram ? (
+                <>
+                  <p className="text-neutral-500">
+                    Ready to get started?{" "}
+                    <Link href="/workout/new" className="text-accent hover:underline">
+                      Log your first workout here.
+                    </Link>
+                  </p>
+                  <p className="text-neutral-500">
+                    Want to change your program?{" "}
+                    <Link href="/programs" className="text-accent hover:underline">
+                      Check more programs.
+                    </Link>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-neutral-500">No workouts logged yet.</p>
+                  <p className="text-neutral-500">
+                    Already following your own program?{" "}
+                    <Link href="/workout/new" className="text-accent hover:underline">
+                      Start logging here.
+                    </Link>
+                  </p>
+                  <p className="text-neutral-500">
+                    Not sure where to start?{" "}
+                    <Link href="/programs" className="text-accent hover:underline">
+                      Check our pre-designed programs.
+                    </Link>
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              <WeeklyWorkoutHistory workouts={workouts} />
+              <p className="text-sm">
+                {hasProgram ? (
+                  <Link href="/programs" className="text-accent hover:underline">
+                    Change Program
+                  </Link>
+                ) : (
+                  <>
+                    Looking for more structure?{" "}
+                    <Link href="/programs" className="text-accent hover:underline">
+                      Check our pre-designed programs.
+                    </Link>
+                  </>
+                )}
+              </p>
+            </>
+          )}
+        </>
       )}
     </AppShell>
   );

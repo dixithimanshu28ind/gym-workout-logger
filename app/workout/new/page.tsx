@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { createWorkout } from "@/lib/workouts";
 import type { WorkoutFormData } from "@/lib/types";
@@ -9,8 +9,18 @@ import WorkoutForm from "@/components/WorkoutForm";
 import AppShell from "@/components/AppShell";
 
 export default function NewWorkoutPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewWorkoutPageInner />
+    </Suspense>
+  );
+}
+
+function NewWorkoutPageInner() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledDate = searchParams.get("date");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,7 +54,13 @@ export default function NewWorkoutPage() {
           {error}
         </p>
       )}
-      <WorkoutForm onSubmit={handleSubmit} submitLabel="Submit Workout" />
+      <WorkoutForm
+        initialData={
+          prefilledDate ? { date: prefilledDate, workout_type: "", exercises: [] } : undefined
+        }
+        onSubmit={handleSubmit}
+        submitLabel="Submit Workout"
+      />
     </AppShell>
   );
 }
