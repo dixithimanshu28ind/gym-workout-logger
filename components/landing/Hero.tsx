@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useAuthModal } from "@/contexts/AuthModalContext";
 
 function MiniSetRow({ label, weight, reps }: { label: string; weight: string; reps: string }) {
   return (
@@ -68,6 +71,8 @@ function ProductVisual() {
 }
 
 export default function Hero() {
+  const { openSignUp, openSignIn } = useAuthModal();
+
   return (
     <section className="mx-auto grid max-w-6xl gap-12 px-6 py-16 md:grid-cols-2 md:items-center md:py-24">
       <div>
@@ -82,12 +87,13 @@ export default function Hero() {
           forward even when training doesn&apos;t go exactly to plan.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/signup"
+          <button
+            type="button"
+            onClick={() => openSignUp()}
             className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground hover:opacity-90 transition"
           >
             Start Training
-          </Link>
+          </button>
           <Link
             href="/programs"
             className="rounded-lg border border-card-border px-6 py-3 text-sm font-medium hover:bg-card transition"
@@ -97,9 +103,13 @@ export default function Hero() {
         </div>
         <p className="mt-4 text-sm text-neutral-500">
           Already have an account?{" "}
-          <Link href="/signin" className="font-medium text-accent hover:underline">
+          <button
+            type="button"
+            onClick={() => openSignIn()}
+            className="font-medium text-accent hover:underline"
+          >
             Sign in
-          </Link>
+          </button>
         </p>
       </div>
 

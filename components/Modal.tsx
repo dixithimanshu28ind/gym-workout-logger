@@ -1,16 +1,26 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 
 export default function Modal({
   onClose,
   showCloseButton = true,
+  maxWidth = "max-w-sm",
   children,
 }: {
   onClose: () => void;
   showCloseButton?: boolean;
+  maxWidth?: string;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 p-4"
@@ -20,7 +30,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-sm rounded-xl border border-card-border bg-card p-6 shadow-lg"
+        className={`relative w-full ${maxWidth} rounded-xl border border-card-border bg-card p-6 shadow-lg`}
       >
         {showCloseButton && (
           <button

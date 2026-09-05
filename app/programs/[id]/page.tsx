@@ -1,20 +1,22 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthModal } from "@/contexts/AuthModalContext";
 import { fetchProfile, selectProgram, leaveProgram } from "@/lib/profile";
 import { getProgramById } from "@/lib/programs";
 import { getProgramDetail } from "@/lib/programDetails";
 import AppShell from "@/components/AppShell";
 import Modal from "@/components/Modal";
+import LandingHeader from "@/components/landing/LandingHeader";
+import Footer from "@/components/landing/Footer";
 import { CollapsibleSection, TextBlockContent, WeekBlockContent } from "@/components/ProgramPlan";
 
 export default function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user, loading } = useAuth();
-  const router = useRouter();
+  const { openSignUp } = useAuthModal();
 
   const program = getProgramById(id);
   const detail = getProgramDetail(id);
@@ -32,19 +34,14 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   const disclaimerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-      return;
-    }
-    if (user) {
-      fetchProfile(user.id)
-        .then((profile) => setSelectedId(profile?.selected_program_id ?? null))
-        .catch((e) => setError(e instanceof Error ? e.message : "Failed to load your program."))
-        .finally(() => setLoadingSelection(false));
-    }
-  }, [user, loading, router]);
+    if (loading || !user) return;
+    fetchProfile(user.id)
+      .then((profile) => setSelectedId(profile?.selected_program_id ?? null))
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load your program."))
+      .finally(() => setLoadingSelection(false));
+  }, [user, loading]);
 
-  if (loading || !user || loadingSelection) {
+  if (loading || (user && loadingSelection)) {
     return (
       <main className="flex-1 flex items-center justify-center">
         <p className="text-neutral-500">Loading...</p>
@@ -53,15 +50,23 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   }
 
   if (!program || !detail) {
+    const notFound = (
+      <p className="text-sm text-neutral-500">
+        We couldn&apos;t find that program.{" "}
+        <Link href="/programs" className="text-accent hover:underline">
+          Back to Programs
+        </Link>
+      </p>
+    );
+    if (user) {
+      return <AppShell title="Program not found">{notFound}</AppShell>;
+    }
     return (
-      <AppShell title="Program not found">
-        <p className="text-sm text-neutral-500">
-          We couldn&apos;t find that program.{" "}
-          <Link href="/programs" className="text-accent hover:underline">
-            Back to Programs
-          </Link>
-        </p>
-      </AppShell>
+      <div className="flex-1">
+        <LandingHeader />
+        <main className="mx-auto max-w-6xl px-6 py-12">{notFound}</main>
+        <Footer />
+      </div>
     );
   }
 
@@ -71,12 +76,11 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
     disclaimerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleConfirm = async () => {
-    if (!agreed) return;
+  const doSelectProgram = async (userId: string) => {
     setError(null);
     setSaving(true);
     try {
-      await selectProgram(user.id, program.id);
+      await selectProgram(userId, program.id);
       setSelectedId(program.id);
       setJustSelected(true);
     } catch (e) {
@@ -86,7 +90,17 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleSelectStart = () => {
+    if (!agreed) return;
+    if (!user) {
+      openSignUp((userId) => doSelectProgram(userId));
+      return;
+    }
+    doSelectProgram(user.id);
+  };
+
   const handleLeaveConfirm = async () => {
+    if (!user) return;
     setError(null);
     setLeaving(true);
     try {
@@ -102,17 +116,21 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  return (
-    <AppShell title={program.name}>
-      {!isSelected && (
-        <button
-          onClick={scrollToDisclaimer}
-          className="hidden sm:block fixed left-60 top-1/2 z-20 -translate-y-1/2 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-accent-foreground shadow-lg transition hover:opacity-90"
-        >
-          Select & Start ↓
-        </button>
-      )}
+  const selectStartAction = isSelected ? (
+    <span className="rounded-full bg-accent/10 px-4 py-1.5 text-sm font-medium text-accent">
+      Current Program
+    </span>
+  ) : (
+    <button
+      onClick={scrollToDisclaimer}
+      className="whitespace-nowrap rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-accent-foreground shadow-sm transition hover:opacity-90"
+    >
+      Select & Start ↓
+    </button>
+  );
 
+  const content = (
+    <>
       <div className="space-y-6">
         <div>
           <p className="text-sm text-neutral-500">{program.subtitle}</p>
@@ -208,7 +226,7 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
           )}
 
           <button
-            onClick={handleConfirm}
+            onClick={handleSelectStart}
             disabled={!agreed || saving || isSelected}
             className="w-full rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-accent-foreground transition hover:opacity-90 disabled:opacity-50 sm:w-auto"
           >
@@ -260,6 +278,28 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </Modal>
       )}
-    </AppShell>
+    </>
+  );
+
+  if (user) {
+    return (
+      <AppShell title={program.name} actions={selectStartAction}>
+        {content}
+      </AppShell>
+    );
+  }
+
+  return (
+    <div className="flex-1">
+      <LandingHeader />
+      <div className="sticky top-[73px] z-10 border-b border-card-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+          <h1 className="font-display text-lg sm:text-xl">{program.name}</h1>
+          {selectStartAction}
+        </div>
+      </div>
+      <main className="mx-auto max-w-6xl px-6 py-12">{content}</main>
+      <Footer />
+    </div>
   );
 }

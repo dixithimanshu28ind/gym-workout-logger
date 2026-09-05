@@ -1,12 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useAuthModal } from "@/contexts/AuthModalContext";
 
 const FOCUS_CLASS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar rounded-sm";
-
-const ACCOUNT_LINKS = [
-  { href: "/signup", label: "Start Training" },
-  { href: "/signin", label: "Sign In" },
-];
 
 const PLACEHOLDER_LEGAL_LINKS = ["Terms of Use", "Privacy Policy", "Fitness Disclaimer"];
 
@@ -29,6 +27,7 @@ function FooterPlaceholderGroup({ heading, labels }: { heading: string; labels: 
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const { openSignUp, openSignIn } = useAuthModal();
 
   return (
     <footer className="bg-sidebar text-sidebar-foreground">
@@ -87,16 +86,24 @@ export default function Footer() {
               Account
             </p>
             <ul className="mt-4 space-y-3">
-              {ACCOUNT_LINKS.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={`text-sm text-sidebar-foreground transition hover:text-accent ${FOCUS_CLASS}`}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => openSignUp()}
+                  className={`text-sm text-sidebar-foreground transition hover:text-accent ${FOCUS_CLASS}`}
+                >
+                  Start Training
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => openSignIn()}
+                  className={`text-sm text-sidebar-foreground transition hover:text-accent ${FOCUS_CLASS}`}
+                >
+                  Sign In
+                </button>
+              </li>
               <li className="text-sm text-sidebar-foreground-muted">Support</li>
             </ul>
           </div>

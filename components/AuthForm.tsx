@@ -7,15 +7,28 @@ import { supabase } from "@/lib/supabaseClient";
 
 interface AuthFormProps {
   mode: "signup" | "signin";
+  onSuccess?: (userId: string) => void;
+  onSwitchMode?: (mode: "signup" | "signin") => void;
 }
 
-export default function AuthForm({ mode }: AuthFormProps) {
+export default function AuthForm({ mode, onSuccess, onSwitchMode }: AuthFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const isSignUp = mode === "signup";
+
+  const handleSuccess = (userId: string) => {
+    if (onSuccess) {
+      onSuccess(userId);
+      return;
+    }
+    router.push("/dashboard");
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -30,10 +43,14 @@ export default function AuthForm({ mode }: AuthFormProps) {
       setError("Password must be at least 6 characters.");
       return;
     }
+    if (isSignUp && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
     setSubmitting(true);
 
-    if (mode === "signup") {
+    if (isSignUp) {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -46,7 +63,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       }
 
       if (data.session) {
-        router.push("/dashboard");
+        handleSuccess(data.session.user.id);
         return;
       }
 
@@ -57,7 +74,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -68,16 +85,19 @@ export default function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
-    router.push("/dashboard");
+    handleSuccess(data.user.id);
   };
-
-  const isSignUp = mode === "signup";
 
   return (
     <div className="max-w-sm w-full mx-auto space-y-6">
-      <h1 className="font-display text-2xl tracking-wide text-center">
-        {isSignUp ? "Create your account" : "Sign in"}
-      </h1>
+      <div className="text-center">
+        <h1 className="font-display text-2xl tracking-wide">
+          {isSignUp ? "Start training" : "Welcome back"}
+        </h1>
+        {isSignUp && (
+          <p className="mt-1 text-sm text-neutral-500">Create your Log &amp; Train account.</p>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
@@ -108,6 +128,22 @@ export default function AuthForm({ mode }: AuthFormProps) {
           />
         </div>
 
+        {isSignUp && (
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+              autoComplete="new-password"
+            />
+          </div>
+        )}
+
         {error && (
           <p className="text-sm text-red-600" role="alert">
             {error}
@@ -124,7 +160,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           disabled={submitting}
           className="w-full rounded-lg bg-accent text-accent-foreground font-medium py-2.5 hover:opacity-90 transition disabled:opacity-50"
         >
-          {submitting ? "Please wait..." : isSignUp ? "Sign Up" : "Sign In"}
+          {submitting ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
         </button>
       </form>
 
@@ -132,16 +168,36 @@ export default function AuthForm({ mode }: AuthFormProps) {
         {isSignUp ? (
           <>
             Already have an account?{" "}
-            <Link href="/signin" className="underline font-medium">
-              Sign in
-            </Link>
+            {onSwitchMode ? (
+              <button
+                type="button"
+                onClick={() => onSwitchMode("signin")}
+                className="underline font-medium"
+              >
+                Sign in
+              </button>
+            ) : (
+              <Link href="/signin" className="underline font-medium">
+                Sign in
+              </Link>
+            )}
           </>
         ) : (
           <>
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="underline font-medium">
-              Sign up
-            </Link>
+            New to Log &amp; Train?{" "}
+            {onSwitchMode ? (
+              <button
+                type="button"
+                onClick={() => onSwitchMode("signup")}
+                className="underline font-medium"
+              >
+                Create an account
+              </button>
+            ) : (
+              <Link href="/signup" className="underline font-medium">
+                Create an account
+              </Link>
+            )}
           </>
         )}
       </p>

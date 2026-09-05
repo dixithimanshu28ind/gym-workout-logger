@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useAuthModal } from "@/contexts/AuthModalContext";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
@@ -11,6 +12,7 @@ const NAV_LINKS = [
 
 export default function LandingHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { openSignUp, openSignIn } = useAuthModal();
 
   return (
     <header className="sticky top-0 z-30 border-b border-card-border bg-background/95 backdrop-blur">
@@ -38,15 +40,20 @@ export default function LandingHeader() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <Link href="/signin" className="text-sm font-medium hover:text-accent transition">
+          <button
+            type="button"
+            onClick={() => openSignIn()}
+            className="text-sm font-medium hover:text-accent transition"
+          >
             Sign In
-          </Link>
-          <Link
-            href="/signup"
+          </button>
+          <button
+            type="button"
+            onClick={() => openSignUp()}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 transition"
           >
             Start Training
-          </Link>
+          </button>
         </div>
 
         <button
@@ -89,15 +96,26 @@ export default function LandingHeader() {
               </span>
             </span>
             <div className="mt-2 flex flex-col gap-3 border-t border-card-border pt-4">
-              <Link href="/signin" className="text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  openSignIn();
+                }}
+                className="text-left text-sm font-medium"
+              >
                 Sign In
-              </Link>
-              <Link
-                href="/signup"
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  openSignUp();
+                }}
                 className="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-foreground hover:opacity-90 transition"
               >
                 Start Training
-              </Link>
+              </button>
             </div>
           </nav>
         </div>

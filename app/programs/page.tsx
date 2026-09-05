@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProfile, leaveProgram } from "@/lib/profile";
 import { PROGRAMS } from "@/lib/programs";
 import AppShell from "@/components/AppShell";
 import Modal from "@/components/Modal";
+import LandingHeader from "@/components/landing/LandingHeader";
+import Footer from "@/components/landing/Footer";
 
 export default function ProgramsPage() {
   const { user, loading } = useAuth();
-  const router = useRouter();
 
   const [loadingSelection, setLoadingSelection] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -21,17 +21,12 @@ export default function ProgramsPage() {
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-      return;
-    }
-    if (user) {
-      fetchProfile(user.id)
-        .then((profile) => setSelectedId(profile?.selected_program_id ?? null))
-        .catch((e) => setError(e instanceof Error ? e.message : "Failed to load your program."))
-        .finally(() => setLoadingSelection(false));
-    }
-  }, [user, loading, router]);
+    if (loading || !user) return;
+    fetchProfile(user.id)
+      .then((profile) => setSelectedId(profile?.selected_program_id ?? null))
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load your program."))
+      .finally(() => setLoadingSelection(false));
+  }, [user, loading]);
 
   const handleLeaveConfirm = async () => {
     if (!user) return;
@@ -49,7 +44,7 @@ export default function ProgramsPage() {
     }
   };
 
-  if (loading || !user || loadingSelection) {
+  if (loading || (user && loadingSelection)) {
     return (
       <main className="flex-1 flex items-center justify-center">
         <p className="text-neutral-500">Loading...</p>
@@ -57,8 +52,8 @@ export default function ProgramsPage() {
     );
   }
 
-  return (
-    <AppShell title="Programs">
+  const content = (
+    <>
       {error && (
         <p className="text-sm text-red-600" role="alert">
           {error}
@@ -152,6 +147,18 @@ export default function ProgramsPage() {
           <p className="text-sm">You&apos;ve left the program.</p>
         </Modal>
       )}
-    </AppShell>
+    </>
+  );
+
+  if (user) {
+    return <AppShell title="Programs">{content}</AppShell>;
+  }
+
+  return (
+    <div className="flex-1">
+      <LandingHeader />
+      <main className="mx-auto max-w-6xl px-6 py-12">{content}</main>
+      <Footer />
+    </div>
   );
 }

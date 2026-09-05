@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Anton } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NavigationGuardProvider } from "@/contexts/NavigationGuardContext";
+import { AuthModalProvider } from "@/contexts/AuthModalContext";
 import FitSparkChat from "@/components/FitSparkChat";
 
 const geistSans = Geist({
@@ -34,7 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <AuthProvider>
-          <NavigationGuardProvider>{children}</NavigationGuardProvider>
+          <NavigationGuardProvider>
+            <AuthModalProvider>{children}</AuthModalProvider>
+          </NavigationGuardProvider>
         </AuthProvider>
         <FitSparkChat />
       </body>
