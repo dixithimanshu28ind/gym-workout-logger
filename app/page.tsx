@@ -3,6 +3,7 @@ import Hero from "@/components/landing/Hero";
 import CorePositioning from "@/components/landing/CorePositioning";
 import WorkoutProgramsSplit from "@/components/landing/WorkoutProgramsSplit";
 import ProgressConsistency from "@/components/landing/ProgressConsistency";
+import CommunityTeaser from "@/components/landing/CommunityTeaser";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
         <CorePositioning />
         <WorkoutProgramsSplit />
         <ProgressConsistency />
+        <CommunityTeaser />
       </main>
     </div>
   );
