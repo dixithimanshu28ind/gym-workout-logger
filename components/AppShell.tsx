@@ -2,8 +2,9 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigationGuard } from "@/contexts/NavigationGuardContext";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
@@ -26,10 +27,19 @@ export default function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, signOut } = useAuth();
+  const { guardedNavigate } = useNavigationGuard();
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+
+  const navigateTo = (href: string) => {
+    if (href === pathname) return;
+    guardedNavigate(() => router.push(href));
+  };
+
+  const handleSignOut = () => guardedNavigate(() => signOut());
 
   const today = new Date().toLocaleDateString(undefined, {
     year: "numeric",
@@ -49,6 +59,10 @@ export default function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateTo(item.href);
+                }}
                 className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
                   isActive(item.href)
                     ? "bg-accent text-accent-foreground"
@@ -69,7 +83,7 @@ export default function AppShell({
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{user.email}</p>
               <button
-                onClick={() => signOut()}
+                onClick={handleSignOut}
                 className="text-xs text-sidebar-foreground-muted hover:text-sidebar-foreground hover:underline"
               >
                 Sign Out
@@ -86,7 +100,7 @@ export default function AppShell({
           </span>
           {user && (
             <button
-              onClick={() => signOut()}
+              onClick={handleSignOut}
               className="text-xs text-sidebar-foreground-muted hover:text-sidebar-foreground"
             >
               Sign Out
@@ -98,6 +112,10 @@ export default function AppShell({
             <Link
               key={item.href}
               href={item.href}
+              onClick={(e) => {
+                e.preventDefault();
+                navigateTo(item.href);
+              }}
               className={`whitespace-nowrap ${
                 isActive(item.href) ? "font-semibold text-accent" : "text-neutral-500"
               }`}

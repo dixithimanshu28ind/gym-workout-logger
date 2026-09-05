@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigationGuard } from "@/contexts/NavigationGuardContext";
 import { fetchProfile } from "@/lib/profile";
 import { getProgramById } from "@/lib/programs";
 import {
@@ -93,10 +94,39 @@ function NewWorkoutPageInner() {
   const [completedProgramDayKeys, setCompletedProgramDayKeys] = useState<Set<string>>(new Set());
   const [dismissedForDate, setDismissedForDate] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pendingSections, setPendingSections] = useState<SectionState[] | null>(null);
+  const [pendingSave, setPendingSave] = useState<
+    { sections: SectionState[]; onDone: () => void } | null
+  >(null);
   const [saveDialog, setSaveDialog] = useState<
     { kind: "none-completed" } | { kind: "some-incomplete"; completed: number; total: number } | null
   >(null);
+  const [dirty, setDirty] = useState(false);
+  const [leaveDialog, setLeaveDialog] = useState<{ proceed: () => void } | null>(null);
+  const dirtyRef = useRef(dirty);
+  const { registerGuard, guardedNavigate } = useNavigationGuard();
+
+  useEffect(() => {
+    dirtyRef.current = dirty;
+  }, [dirty]);
+
+  useEffect(
+    () => registerGuard(() => dirtyRef.current, (proceed) => setLeaveDialog({ proceed })),
+    [registerGuard]
+  );
+
+  // AC25: warn on tab close/refresh too. Browsers show their own generic
+  // prompt here (no custom copy allowed) — this is a platform limitation,
+  // not a shortcut; there's no way to run an async save from this handler.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirtyRef.current) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -119,6 +149,7 @@ function NewWorkoutPageInner() {
             setSections([{ clientKey: nextClientKey(), data: emptySectionData() }]);
             setInitialSectionIds([]);
             setExpandedIndex(0);
+            setDirty(false);
           }
           return programId;
         })
@@ -160,6 +191,7 @@ function NewWorkoutPageInner() {
         );
         setInitialSectionIds(currentIdsForDate);
         setExpandedIndex(defaultExpandedIndex(workouts.length));
+        setDirty(false);
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load workouts.");
@@ -176,6 +208,7 @@ function NewWorkoutPageInner() {
       setSections([{ clientKey: nextClientKey(), data: emptySectionData() }]);
       setInitialSectionIds([]);
       setExpandedIndex(0);
+      setDirty(false);
     }
   };
 
@@ -253,6 +286,7 @@ function NewWorkoutPageInner() {
     setExpandedIndex(defaultExpandedIndex(built.length));
     setDismissedForDate(selectedDate);
     setPickerOpen(false);
+    setDirty(true);
   };
 
   const logSomethingElse = () => {
@@ -260,10 +294,13 @@ function NewWorkoutPageInner() {
     setInitialSectionIds([]);
     setExpandedIndex(0);
     setDismissedForDate(selectedDate);
+    setDirty(true);
   };
 
-  const updateSection = (idx: number, next: WorkoutSectionData) =>
+  const updateSection = (idx: number, next: WorkoutSectionData) => {
     setSections((prev) => prev.map((s, i) => (i === idx ? { ...s, data: next } : s)));
+    setDirty(true);
+  };
 
   const addSection = () => {
     setSections((prev) => [
@@ -271,6 +308,7 @@ function NewWorkoutPageInner() {
       { clientKey: nextClientKey(), data: emptySectionData(), justAdded: true },
     ]);
     setExpandedIndex(sections.length);
+    setDirty(true);
   };
 
   const removeSection = (idx: number) => {
@@ -278,6 +316,7 @@ function NewWorkoutPageInner() {
     const finalSections =
       next.length > 0 ? next : [{ clientKey: nextClientKey(), data: emptySectionData() }];
     setSections(finalSections);
+    setDirty(true);
 
     if (finalSections.length === 1) {
       setExpandedIndex(0);
@@ -292,7 +331,7 @@ function NewWorkoutPageInner() {
   };
 
   const performSave = useCallback(
-    async (meaningfulSections: SectionState[]) => {
+    async (meaningfulSections: SectionState[], onDone: () => void) => {
       if (!user) return;
       setSaving(true);
       try {
@@ -326,7 +365,8 @@ function NewWorkoutPageInner() {
           }),
           ...removedIds.map((id) => deleteWorkout(id)),
         ]);
-        router.push("/dashboard");
+        setDirty(false);
+        onDone();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to save workouts.");
       } finally {
@@ -334,47 +374,68 @@ function NewWorkoutPageInner() {
         setSaveDialog(null);
       }
     },
-    [user, initialSectionIds, selectedDate, router]
+    [user, initialSectionIds, selectedDate]
   );
 
-  const handleSave = useCallback(() => {
-    if (!user) return;
-    setError(null);
+  const attemptSave = useCallback(
+    (onDone: () => void) => {
+      if (!user) return;
+      setError(null);
 
-    const meaningfulSections = sections.filter(
-      (s) => s.data.workout_type !== "" || s.data.exercises.length > 0
-    );
+      const meaningfulSections = sections.filter(
+        (s) => s.data.workout_type !== "" || s.data.exercises.length > 0
+      );
 
-    const allErrors = meaningfulSections.flatMap((s, i) =>
-      validateWorkoutSection(s.data, `Workout ${i + 1}`)
-    );
-    setErrors(allErrors);
-    if (allErrors.length > 0) return;
+      const allErrors = meaningfulSections.flatMap((s, i) =>
+        validateWorkoutSection(s.data, `Workout ${i + 1}`)
+      );
+      setErrors(allErrors);
+      if (allErrors.length > 0) return;
 
-    // AC17/19: completeness is judged across every non-Rest-Day section
-    // being saved this click — Rest Day always saves as-is regardless.
-    const nonRestSections = meaningfulSections.filter(
-      (s) => s.data.workout_type !== REST_DAY_WORKOUT_TYPE
-    );
-    const total = nonRestSections.reduce((n, s) => n + s.data.exercises.length, 0);
-    const completed = nonRestSections.reduce(
-      (n, s) => n + s.data.exercises.filter(isExerciseComplete).length,
-      0
-    );
+      // AC17/19: completeness is judged across every non-Rest-Day section
+      // being saved this click — Rest Day always saves as-is regardless.
+      const nonRestSections = meaningfulSections.filter(
+        (s) => s.data.workout_type !== REST_DAY_WORKOUT_TYPE
+      );
+      const total = nonRestSections.reduce((n, s) => n + s.data.exercises.length, 0);
+      const completed = nonRestSections.reduce(
+        (n, s) => n + s.data.exercises.filter(isExerciseComplete).length,
+        0
+      );
 
-    if (nonRestSections.length > 0 && completed === 0) {
-      setPendingSections(meaningfulSections);
-      setSaveDialog({ kind: "none-completed" });
-      return;
-    }
-    if (completed < total) {
-      setPendingSections(meaningfulSections);
-      setSaveDialog({ kind: "some-incomplete", completed, total });
-      return;
-    }
+      if (nonRestSections.length > 0 && completed === 0) {
+        setPendingSave({ sections: meaningfulSections, onDone });
+        setSaveDialog({ kind: "none-completed" });
+        return;
+      }
+      if (completed < total) {
+        setPendingSave({ sections: meaningfulSections, onDone });
+        setSaveDialog({ kind: "some-incomplete", completed, total });
+        return;
+      }
 
-    performSave(meaningfulSections);
-  }, [user, sections, performSave]);
+      performSave(meaningfulSections, onDone);
+    },
+    [user, sections, performSave]
+  );
+
+  const handleSave = useCallback(
+    () => attemptSave(() => router.push("/dashboard")),
+    [attemptSave, router]
+  );
+
+  const handleSaveAndLeave = () => {
+    const proceed = leaveDialog?.proceed;
+    setLeaveDialog(null);
+    if (proceed) attemptSave(proceed);
+  };
+
+  const handleLeaveWithoutSaving = () => {
+    const proceed = leaveDialog?.proceed;
+    setLeaveDialog(null);
+    setDirty(false);
+    proceed?.();
+  };
 
   if (loading || !user || loadingPage) {
     return (
@@ -390,7 +451,14 @@ function NewWorkoutPageInner() {
         {selectedProgram ? (
           <>
             You are currently following{" "}
-            <Link href={`/programs/${selectedProgram.id}`} className="text-accent hover:underline">
+            <Link
+              href={`/programs/${selectedProgram.id}`}
+              onClick={(e) => {
+                e.preventDefault();
+                guardedNavigate(() => router.push(`/programs/${selectedProgram.id}`));
+              }}
+              className="text-accent hover:underline"
+            >
               {selectedProgram.name}
             </Link>
             .
@@ -398,7 +466,14 @@ function NewWorkoutPageInner() {
         ) : (
           <>
             You are currently following your own workout program. Looking for more structure?{" "}
-            <Link href="/programs" className="text-accent hover:underline">
+            <Link
+              href="/programs"
+              onClick={(e) => {
+                e.preventDefault();
+                guardedNavigate(() => router.push("/programs"));
+              }}
+              className="text-accent hover:underline"
+            >
               Check our pre-designed programs.
             </Link>
           </>
@@ -489,7 +564,10 @@ function NewWorkoutPageInner() {
               Stay
             </button>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => {
+                setDirty(false);
+                pendingSave?.onDone();
+              }}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
               Leave Without Saving
@@ -513,11 +591,41 @@ function NewWorkoutPageInner() {
               Stay
             </button>
             <button
-              onClick={() => pendingSections && performSave(pendingSections)}
+              onClick={() => pendingSave && performSave(pendingSave.sections, pendingSave.onDone)}
               disabled={saving}
               className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save & Exit"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {leaveDialog && (
+        <Modal onClose={() => setLeaveDialog(null)} showCloseButton={false}>
+          <p className="font-medium">Save before you leave?</p>
+          <p className="mt-2 text-sm text-neutral-600">
+            You have changes that haven&apos;t been saved.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <button
+              onClick={() => setLeaveDialog(null)}
+              className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium hover:bg-background"
+            >
+              Stay
+            </button>
+            <button
+              onClick={handleLeaveWithoutSaving}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              Leave Without Saving
+            </button>
+            <button
+              onClick={handleSaveAndLeave}
+              disabled={saving}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save & Leave"}
             </button>
           </div>
         </Modal>
