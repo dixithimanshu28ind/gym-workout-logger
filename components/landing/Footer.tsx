@@ -119,7 +119,14 @@ export default function Footer() {
                   Sign In
                 </button>
               </li>
-              <li className="text-sm text-sidebar-foreground-muted">Support</li>
+              <li>
+                <Link
+                  href="/support"
+                  className={`text-sm text-sidebar-foreground transition hover:text-accent ${FOCUS_CLASS}`}
+                >
+                  Support
+                </Link>
+              </li>
             </ul>
           </div>
 
