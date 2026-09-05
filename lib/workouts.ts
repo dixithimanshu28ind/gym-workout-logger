@@ -28,7 +28,7 @@ export async function fetchWorkoutDetail(
   const { data, error } = await supabase
     .from("workouts")
     .select(
-      "id, date, workout_type, workout_type_custom, program_id, program_day_key, exercises(id, name, is_prescribed, sets(id, effort_type, effort_value, reps, duration_unit))"
+      "id, date, workout_type, workout_type_custom, program_id, program_day_key, exercises(id, name, prescribed_index, sets(id, effort_type, effort_value, reps, duration_unit))"
     )
     .eq("id", workoutId)
     .single();
@@ -45,7 +45,7 @@ export async function fetchWorkoutDetail(
     exercises: (data.exercises ?? []).map((ex) => ({
       id: ex.id,
       name: ex.name,
-      isPrescribed: ex.is_prescribed,
+      prescribedIndex: ex.prescribed_index,
       sets: (ex.sets ?? []).map((s) => {
         const effort_type = normalizeEffortType(s.effort_type);
         return {
@@ -106,22 +106,32 @@ export async function updateWorkout(workoutId: string, form: WorkoutFormData): P
   await insertExercises(workoutId, form.exercises);
 }
 
+export interface ProgramDayProgress {
+  /** Prescribed-list indexes (see getPrescribedExercises) with at least one completed set, across every saved row for this key. */
+  completedIndexes: Set<number>;
+  /** Total prescribed exercises for this day (0 for HIIT/rounds-only). */
+  total: number;
+  /** Whether this day meets GYM-11's 50% completion rule (AC20-24). */
+  meetsThreshold: boolean;
+}
+
 /**
- * Program day keys that meet GYM-11's 50% completion rule (AC20-24), derived
- * fresh from every saved exercise/set tagged with each program day rather
- * than a persisted flag — see the "derive over persist" note in project
- * memory. Aggregating across *all* saved workout rows for a given key (not
- * just the most recent) is what lets a later Resume session (AC29-31)
- * combine with an earlier partial save without any extra bookkeeping.
+ * Per-program-day completion, derived fresh from every saved exercise/set
+ * tagged with each program day rather than a persisted flag — see the
+ * "derive over persist" note in project memory. Aggregating across *all*
+ * saved workout rows for a given key (not just the most recent) is what
+ * lets Resume (AC29-31) combine with an earlier partial save, and what lets
+ * it know exactly which prescribed exercises are already done vs. still
+ * missing (AC29/30) — a plain "is it done" count can't tell those apart.
  */
-export async function fetchCompletedProgramDayKeys(
+export async function fetchProgramDayProgress(
   userId: string,
   programId: string
-): Promise<Set<string>> {
+): Promise<Map<string, ProgramDayProgress>> {
   const { data, error } = await supabase
     .from("workouts")
     .select(
-      "program_day_key, exercises(is_prescribed, sets(effort_type, effort_value, reps, duration_unit))"
+      "program_day_key, exercises(prescribed_index, sets(effort_type, effort_value, reps, duration_unit))"
     )
     .eq("user_id", userId)
     .eq("program_id", programId)
@@ -129,29 +139,31 @@ export async function fetchCompletedProgramDayKeys(
 
   if (error) throw new Error(error.message);
 
-  const byKey = new Map<string, { prescribedComplete: number; anyComplete: boolean }>();
+  const byKey = new Map<string, { completedIndexes: Set<number>; anyComplete: boolean }>();
   for (const row of data ?? []) {
     const key = row.program_day_key as string;
-    const entry = byKey.get(key) ?? { prescribedComplete: 0, anyComplete: false };
+    const entry = byKey.get(key) ?? { completedIndexes: new Set<number>(), anyComplete: false };
     for (const ex of row.exercises ?? []) {
       if ((ex.sets ?? []).some(isSetComplete)) {
         entry.anyComplete = true;
-        if (ex.is_prescribed) entry.prescribedComplete += 1;
+        if (ex.prescribed_index !== null && ex.prescribed_index !== undefined) {
+          entry.completedIndexes.add(ex.prescribed_index);
+        }
       }
     }
     byKey.set(key, entry);
   }
 
-  const completed = new Set<string>();
-  for (const [key, { prescribedComplete, anyComplete }] of byKey) {
+  const result = new Map<string, ProgramDayProgress>();
+  for (const [key, { completedIndexes, anyComplete }] of byKey) {
     const ref = findProgramDay(programId, key);
     const total = ref ? prescribedExerciseCount(ref.day) : 0;
     // A 0-prescribed day (HIIT/rounds-only) has no ratio to compute — treat
     // any saved exercise as meeting the bar instead of dividing by zero.
-    const meetsThreshold = total === 0 ? anyComplete : prescribedComplete / total >= 0.5;
-    if (meetsThreshold) completed.add(key);
+    const meetsThreshold = total === 0 ? anyComplete : completedIndexes.size / total >= 0.5;
+    result.set(key, { completedIndexes, total, meetsThreshold });
   }
-  return completed;
+  return result;
 }
 
 export async function deleteWorkout(workoutId: string): Promise<void> {
@@ -163,7 +175,11 @@ async function insertExercises(workoutId: string, exercises: WorkoutFormData["ex
   for (const exercise of exercises) {
     const { data: insertedExercise, error: exerciseError } = await supabase
       .from("exercises")
-      .insert({ workout_id: workoutId, name: exercise.name, is_prescribed: exercise.isPrescribed ?? false })
+      .insert({
+        workout_id: workoutId,
+        name: exercise.name,
+        prescribed_index: exercise.prescribedIndex ?? null,
+      })
       .select("id")
       .single();
 

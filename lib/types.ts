@@ -25,8 +25,14 @@ export interface ExerciseData {
   targetLabel?: string;
   /** Program prefill: lets the user swap to/from the program's listed Alternative exercise (GYM-11 AC11/12). Display/UI only — never persisted. */
   altToggle?: AltToggleInfo;
-  /** True when this exercise came from the program's prescribed list rather than being added manually (GYM-11 AC14/20). Persisted. */
-  isPrescribed?: boolean;
+  /**
+   * This exercise's position (0-based) across its program day's whole
+   * prescribed list, or null/undefined if it was added manually
+   * (GYM-11 AC14/20/29-31). Lets a resumed workout tell "Bench Press is
+   * done" apart from "Cable Fly isn't" instead of just a completed count.
+   * Persisted.
+   */
+  prescribedIndex?: number | null;
 }
 
 export interface WorkoutFormData {

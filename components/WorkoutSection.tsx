@@ -7,6 +7,7 @@ import Modal from "@/components/Modal";
 import { CollapsibleSection } from "@/components/ProgramPlan";
 import { OTHER_WORKOUT_TYPE, REST_DAY_WORKOUT_TYPE } from "@/lib/workoutTypes";
 import { DURATION_UNIT_OPTIONS, EFFORT_TYPE_OPTIONS } from "@/lib/effortTypes";
+import { isExerciseComplete } from "@/lib/workoutCompletion";
 
 interface WorkoutSectionProps {
   value: WorkoutSectionData;
@@ -217,6 +218,16 @@ export default function WorkoutSection({
           {value.exercises.map((ex, exIdx) => (
             <div key={exIdx} className="rounded-xl border border-card-border bg-background p-4 space-y-3">
               <div className="flex items-center gap-3">
+                {ex.prescribedIndex != null && (
+                  <span
+                    aria-label={isExerciseComplete(ex) ? "Completed" : "Not yet completed"}
+                    className={`shrink-0 text-sm ${
+                      isExerciseComplete(ex) ? "text-green-600" : "text-neutral-400"
+                    }`}
+                  >
+                    {isExerciseComplete(ex) ? "✓" : "○"}
+                  </span>
+                )}
                 <input
                   type="text"
                   placeholder={`Exercise ${exIdx + 1} name`}

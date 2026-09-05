@@ -10,10 +10,11 @@ import { getProgramById } from "@/lib/programs";
 import {
   createWorkout,
   deleteWorkout,
-  fetchCompletedProgramDayKeys,
+  fetchProgramDayProgress,
   fetchWorkoutDetail,
   fetchWorkoutSummaries,
   updateWorkout,
+  type ProgramDayProgress,
 } from "@/lib/workouts";
 import { formatDateKey } from "@/lib/dates";
 import {
@@ -24,9 +25,21 @@ import {
 } from "@/lib/workoutTypes";
 import { validateWorkoutSection } from "@/lib/workoutValidation";
 import { isExerciseComplete, completedSetsOf } from "@/lib/workoutCompletion";
-import { getProgramDayList, getNextProgramDay, type ProgramDayRef } from "@/lib/programProgress";
+import {
+  getProgramDayList,
+  getNextProgramDay,
+  findProgramDay,
+  type ProgramDayRef,
+} from "@/lib/programProgress";
 import { inferMeasurementType } from "@/lib/measurementHeuristic";
-import type { EffortType, SetData, WorkoutFormData, WorkoutSectionData } from "@/lib/types";
+import type {
+  EffortType,
+  ExerciseData,
+  ExerciseRow,
+  SetData,
+  WorkoutFormData,
+  WorkoutSectionData,
+} from "@/lib/types";
 import WorkoutDatePicker from "@/components/WorkoutDatePicker";
 import WorkoutSection from "@/components/WorkoutSection";
 import AppShell from "@/components/AppShell";
@@ -91,8 +104,11 @@ function NewWorkoutPageInner() {
   const [initialSectionIds, setInitialSectionIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [completedProgramDayKeys, setCompletedProgramDayKeys] = useState<Set<string>>(new Set());
+  const [programDayProgress, setProgramDayProgress] = useState<Map<string, ProgramDayProgress>>(
+    new Map()
+  );
   const [dismissedForDate, setDismissedForDate] = useState<string | null>(null);
+  const [resumeDismissed, setResumeDismissed] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pendingSave, setPendingSave] = useState<
     { sections: SectionState[]; onDone: () => void } | null
@@ -155,7 +171,7 @@ function NewWorkoutPageInner() {
         })
         .then((programId) => {
           if (!programId) return;
-          return fetchCompletedProgramDayKeys(user.id, programId).then(setCompletedProgramDayKeys);
+          return fetchProgramDayProgress(user.id, programId).then(setProgramDayProgress);
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load workout data."))
         .finally(() => setLoadingPage(false));
@@ -186,12 +202,15 @@ function NewWorkoutPageInner() {
               workout_type: w.workout_type,
               workout_type_custom: w.workout_type_custom,
               exercises: w.exercises,
+              program_id: w.program_id,
+              program_day_key: w.program_day_key,
             },
           }))
         );
         setInitialSectionIds(currentIdsForDate);
         setExpandedIndex(defaultExpandedIndex(workouts.length));
         setDirty(false);
+        setResumeDismissed(false);
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load workouts.");
@@ -209,11 +228,22 @@ function NewWorkoutPageInner() {
       setInitialSectionIds([]);
       setExpandedIndex(0);
       setDirty(false);
+      setResumeDismissed(false);
     }
   };
 
   const loggedDates = useMemo(() => new Set(dateToWorkoutIds.keys()), [dateToWorkoutIds]);
   const selectedProgram = getProgramById(selectedProgramId);
+
+  const completedProgramDayKeys = useMemo(
+    () =>
+      new Set(
+        [...programDayProgress]
+          .filter(([, progress]) => progress.meetsThreshold)
+          .map(([key]) => key)
+      ),
+    [programDayProgress]
+  );
 
   const nextProgramDay = useMemo(
     () => (selectedProgramId ? getNextProgramDay(selectedProgramId, completedProgramDayKeys) : undefined),
@@ -225,12 +255,49 @@ function NewWorkoutPageInner() {
     currentIdsForDate.length === 0 &&
     dismissedForDate !== selectedDate;
 
+  // AC29: the current date already has a saved-but-incomplete program day —
+  // offer to Resume rather than gating the (already-valuable) saved data.
+  const findResumeInfo = () => {
+    if (loadingSections || currentIdsForDate.length === 0 || !selectedProgramId) return null;
+    for (const s of sections) {
+      const key = s.data.program_day_key;
+      if (!key) continue;
+      const progress = programDayProgress.get(key);
+      if (!progress || progress.meetsThreshold) continue;
+      const ref = findProgramDay(selectedProgramId, key);
+      if (!ref) continue;
+      return { ref, progress };
+    }
+    return null;
+  };
+  const resumeInfo = findResumeInfo();
+
   const emptySetForType = (measurementType: EffortType): SetData => ({
     effort_type: measurementType,
     effort_value: 0,
     reps: 0,
     duration_unit: measurementType === "duration" ? "min" : undefined,
   });
+
+  const buildPrescribedExercise = (ex: ExerciseRow, prescribedIndex: number): ExerciseData => {
+    const measurementType = ex.measurementType ?? "total_weight";
+    return {
+      name: ex.exercise,
+      targetLabel: ex.targetReps,
+      prescribedIndex,
+      sets: Array.from({ length: ex.sets ?? 1 }, () => emptySetForType(measurementType)),
+      altToggle:
+        ex.alternative && ex.alternative !== "—"
+          ? {
+              originalName: ex.exercise,
+              originalMeasurementType: measurementType,
+              alternativeName: ex.alternative,
+              alternativeMeasurementType: inferMeasurementType(ex.alternative),
+              usingAlternative: false,
+            }
+          : undefined,
+    };
+  };
 
   const sectionsFromProgramDay = (ref: ProgramDayRef): SectionState[] => {
     const groups = ref.day.groups;
@@ -249,34 +316,68 @@ function NewWorkoutPageInner() {
         },
       ];
     }
+    let prescribedIndex = 0;
     return groups.map((group) => ({
       clientKey: nextClientKey(),
       data: {
         workout_type: group.workoutType ?? "",
         workout_type_custom: null,
-        exercises: group.exercises.map((ex) => {
-          const measurementType = ex.measurementType ?? "total_weight";
-          return {
-            name: ex.exercise,
-            targetLabel: ex.targetReps,
-            isPrescribed: true,
-            sets: Array.from({ length: ex.sets ?? 1 }, () => emptySetForType(measurementType)),
-            altToggle:
-              ex.alternative && ex.alternative !== "—"
-                ? {
-                    originalName: ex.exercise,
-                    originalMeasurementType: measurementType,
-                    alternativeName: ex.alternative,
-                    alternativeMeasurementType: inferMeasurementType(ex.alternative),
-                    usingAlternative: false,
-                  }
-                : undefined,
-          };
-        }),
+        exercises: group.exercises.map((ex) => buildPrescribedExercise(ex, prescribedIndex++)),
         program_id: selectedProgramId,
         program_day_key: ref.key,
       },
     }));
+  };
+
+  const resumeIncompleteDay = () => {
+    if (!resumeInfo) return;
+    const { ref, progress } = resumeInfo;
+    const groups = ref.day.groups ?? [];
+    let prescribedIndex = 0;
+    const missingByWorkoutType = new Map<string, ExerciseData[]>();
+    for (const group of groups) {
+      const missing: ExerciseData[] = [];
+      for (const ex of group.exercises) {
+        const idx = prescribedIndex++;
+        if (!progress.completedIndexes.has(idx)) {
+          missing.push(buildPrescribedExercise(ex, idx));
+        }
+      }
+      if (missing.length > 0) missingByWorkoutType.set(group.workoutType ?? "", missing);
+    }
+
+    setSections((prev) => {
+      const next = [...prev];
+      for (const [workoutType, missingExercises] of missingByWorkoutType) {
+        const sectionIdx = next.findIndex(
+          (s) => s.data.program_day_key === ref.key && s.data.workout_type === workoutType
+        );
+        if (sectionIdx >= 0) {
+          next[sectionIdx] = {
+            ...next[sectionIdx],
+            data: {
+              ...next[sectionIdx].data,
+              exercises: [...next[sectionIdx].data.exercises, ...missingExercises],
+            },
+          };
+        } else {
+          // The whole section for this group was removed or never saved — recreate it.
+          next.push({
+            clientKey: nextClientKey(),
+            data: {
+              workout_type: workoutType,
+              workout_type_custom: null,
+              exercises: missingExercises,
+              program_id: selectedProgramId,
+              program_day_key: ref.key,
+            },
+          });
+        }
+      }
+      return next;
+    });
+    setDirty(true);
+    setResumeDismissed(true);
   };
 
   const applyProgramDay = (ref: ProgramDayRef) => {
@@ -525,6 +626,25 @@ function NewWorkoutPageInner() {
               Log Something Else
             </button>
           </div>
+        </div>
+      )}
+
+      {resumeInfo && !resumeDismissed && (
+        <div className="rounded-xl border border-card-border bg-card p-4 space-y-3">
+          <div>
+            <p className="font-medium">Workout not completed</p>
+            <p className="text-sm text-neutral-500">
+              You completed {resumeInfo.progress.completedIndexes.size} of{" "}
+              {resumeInfo.progress.total} prescribed exercises.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={resumeIncompleteDay}
+            className="rounded-lg bg-accent text-accent-foreground font-medium px-4 py-2 text-sm hover:opacity-90 transition"
+          >
+            Resume Workout
+          </button>
         </div>
       )}
 
