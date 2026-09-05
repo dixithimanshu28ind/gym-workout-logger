@@ -6,18 +6,33 @@ import { useAuthModal } from "@/contexts/AuthModalContext";
 const FOCUS_CLASS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar rounded-sm";
 
-const PLACEHOLDER_LEGAL_LINKS = ["Terms of Use", "Privacy Policy", "Fitness Disclaimer"];
+const LEGAL_LINKS = [
+  { href: "/terms", label: "Terms of Use" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/fitness-disclaimer", label: "Fitness Disclaimer" },
+];
 
-function FooterPlaceholderGroup({ heading, labels }: { heading: string; labels: string[] }) {
+function FooterLinkGroup({
+  heading,
+  links,
+}: {
+  heading: string;
+  links: { href: string; label: string }[];
+}) {
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-wide text-sidebar-foreground-muted">
         {heading}
       </p>
       <ul className="mt-4 space-y-3">
-        {labels.map((label) => (
-          <li key={label} className="text-sm text-sidebar-foreground-muted">
-            {label}
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              className={`text-sm text-sidebar-foreground transition hover:text-accent ${FOCUS_CLASS}`}
+            >
+              {link.label}
+            </Link>
           </li>
         ))}
       </ul>
@@ -108,7 +123,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          <FooterPlaceholderGroup heading="Legal" labels={PLACEHOLDER_LEGAL_LINKS} />
+          <FooterLinkGroup heading="Legal" links={LEGAL_LINKS} />
         </div>
 
         <div className="mt-12 border-t border-white/10 pt-6">
