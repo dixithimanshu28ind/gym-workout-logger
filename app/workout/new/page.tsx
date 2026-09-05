@@ -22,6 +22,7 @@ import {
   WORKOUT_TYPES,
 } from "@/lib/workoutTypes";
 import { validateWorkoutSection } from "@/lib/workoutValidation";
+import { isExerciseComplete, completedSetsOf } from "@/lib/workoutCompletion";
 import { getProgramDayList, getNextProgramDay, type ProgramDayRef } from "@/lib/programProgress";
 import { inferMeasurementType } from "@/lib/measurementHeuristic";
 import type { EffortType, SetData, WorkoutFormData, WorkoutSectionData } from "@/lib/types";
@@ -92,6 +93,10 @@ function NewWorkoutPageInner() {
   const [completedProgramDayKeys, setCompletedProgramDayKeys] = useState<Set<string>>(new Set());
   const [dismissedForDate, setDismissedForDate] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pendingSections, setPendingSections] = useState<SectionState[] | null>(null);
+  const [saveDialog, setSaveDialog] = useState<
+    { kind: "none-completed" } | { kind: "some-incomplete"; completed: number; total: number } | null
+  >(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -221,6 +226,7 @@ function NewWorkoutPageInner() {
           return {
             name: ex.exercise,
             targetLabel: ex.targetReps,
+            isPrescribed: true,
             sets: Array.from({ length: ex.sets ?? 1 }, () => emptySetForType(measurementType)),
             altToggle:
               ex.alternative && ex.alternative !== "—"
@@ -285,7 +291,53 @@ function NewWorkoutPageInner() {
     });
   };
 
-  const handleSave = useCallback(async () => {
+  const performSave = useCallback(
+    async (meaningfulSections: SectionState[]) => {
+      if (!user) return;
+      setSaving(true);
+      try {
+        const currentIds = new Set(
+          meaningfulSections.filter((s) => s.data.id).map((s) => s.data.id!)
+        );
+        const removedIds = initialSectionIds.filter((id) => !currentIds.has(id));
+
+        await Promise.all([
+          ...meaningfulSections.map((s) => {
+            // AC16-18: Rest Day keeps its own zero-exercise behaviour; every
+            // other section saves only its completed exercises/sets.
+            const exercises =
+              s.data.workout_type === REST_DAY_WORKOUT_TYPE
+                ? s.data.exercises
+                : s.data.exercises
+                    .filter(isExerciseComplete)
+                    .map((ex) => ({ ...ex, sets: completedSetsOf(ex) }));
+            const payload: WorkoutFormData = {
+              date: selectedDate,
+              workout_type: s.data.workout_type,
+              workout_type_custom:
+                s.data.workout_type === OTHER_WORKOUT_TYPE
+                  ? s.data.workout_type_custom?.trim() || null
+                  : null,
+              exercises,
+              program_id: s.data.program_id ?? null,
+              program_day_key: s.data.program_day_key ?? null,
+            };
+            return s.data.id ? updateWorkout(s.data.id, payload) : createWorkout(user.id, payload);
+          }),
+          ...removedIds.map((id) => deleteWorkout(id)),
+        ]);
+        router.push("/dashboard");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to save workouts.");
+      } finally {
+        setSaving(false);
+        setSaveDialog(null);
+      }
+    },
+    [user, initialSectionIds, selectedDate, router]
+  );
+
+  const handleSave = useCallback(() => {
     if (!user) return;
     setError(null);
 
@@ -299,37 +351,30 @@ function NewWorkoutPageInner() {
     setErrors(allErrors);
     if (allErrors.length > 0) return;
 
-    setSaving(true);
-    try {
-      const currentIds = new Set(
-        meaningfulSections.filter((s) => s.data.id).map((s) => s.data.id!)
-      );
-      const removedIds = initialSectionIds.filter((id) => !currentIds.has(id));
+    // AC17/19: completeness is judged across every non-Rest-Day section
+    // being saved this click — Rest Day always saves as-is regardless.
+    const nonRestSections = meaningfulSections.filter(
+      (s) => s.data.workout_type !== REST_DAY_WORKOUT_TYPE
+    );
+    const total = nonRestSections.reduce((n, s) => n + s.data.exercises.length, 0);
+    const completed = nonRestSections.reduce(
+      (n, s) => n + s.data.exercises.filter(isExerciseComplete).length,
+      0
+    );
 
-      await Promise.all([
-        ...meaningfulSections.map((s) => {
-          const payload: WorkoutFormData = {
-            date: selectedDate,
-            workout_type: s.data.workout_type,
-            workout_type_custom:
-              s.data.workout_type === OTHER_WORKOUT_TYPE
-                ? s.data.workout_type_custom?.trim() || null
-                : null,
-            exercises: s.data.exercises,
-            program_id: s.data.program_id ?? null,
-            program_day_key: s.data.program_day_key ?? null,
-          };
-          return s.data.id ? updateWorkout(s.data.id, payload) : createWorkout(user.id, payload);
-        }),
-        ...removedIds.map((id) => deleteWorkout(id)),
-      ]);
-      router.push("/dashboard");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save workouts.");
-    } finally {
-      setSaving(false);
+    if (nonRestSections.length > 0 && completed === 0) {
+      setPendingSections(meaningfulSections);
+      setSaveDialog({ kind: "none-completed" });
+      return;
     }
-  }, [user, sections, initialSectionIds, selectedDate, router]);
+    if (completed < total) {
+      setPendingSections(meaningfulSections);
+      setSaveDialog({ kind: "some-incomplete", completed, total });
+      return;
+    }
+
+    performSave(meaningfulSections);
+  }, [user, sections, performSave]);
 
   if (loading || !user || loadingPage) {
     return (
@@ -426,6 +471,54 @@ function NewWorkoutPageInner() {
                 </button>
               );
             })}
+          </div>
+        </Modal>
+      )}
+
+      {saveDialog?.kind === "none-completed" && (
+        <Modal onClose={() => setSaveDialog(null)} showCloseButton={false}>
+          <p className="font-medium">No exercises completed</p>
+          <p className="mt-2 text-sm text-neutral-600">
+            There are no completed exercises to save for this workout.
+          </p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button
+              onClick={() => setSaveDialog(null)}
+              className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium hover:bg-background"
+            >
+              Stay
+            </button>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              Leave Without Saving
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {saveDialog?.kind === "some-incomplete" && (
+        <Modal onClose={() => setSaveDialog(null)} showCloseButton={false}>
+          <p className="font-medium">Some exercises aren&apos;t completed</p>
+          <p className="mt-2 text-sm text-neutral-600">
+            You&apos;ve completed {saveDialog.completed} of {saveDialog.total} exercises. Only
+            completed exercises will be saved.
+          </p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button
+              onClick={() => setSaveDialog(null)}
+              className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium hover:bg-background"
+            >
+              Stay
+            </button>
+            <button
+              onClick={() => pendingSections && performSave(pendingSections)}
+              disabled={saving}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save & Exit"}
+            </button>
           </div>
         </Modal>
       )}

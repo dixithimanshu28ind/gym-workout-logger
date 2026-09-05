@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { WorkoutFormData, WorkoutSummary } from "@/lib/types";
 import { normalizeEffortType } from "@/lib/effortTypes";
+import { isSetComplete } from "@/lib/workoutCompletion";
+import { findProgramDay, prescribedExerciseCount } from "@/lib/programProgress";
 
 export async function fetchWorkoutSummaries(userId: string): Promise<WorkoutSummary[]> {
   const { data, error } = await supabase
@@ -26,7 +28,7 @@ export async function fetchWorkoutDetail(
   const { data, error } = await supabase
     .from("workouts")
     .select(
-      "id, date, workout_type, workout_type_custom, program_id, program_day_key, exercises(id, name, sets(id, effort_type, effort_value, reps, duration_unit))"
+      "id, date, workout_type, workout_type_custom, program_id, program_day_key, exercises(id, name, is_prescribed, sets(id, effort_type, effort_value, reps, duration_unit))"
     )
     .eq("id", workoutId)
     .single();
@@ -43,6 +45,7 @@ export async function fetchWorkoutDetail(
     exercises: (data.exercises ?? []).map((ex) => ({
       id: ex.id,
       name: ex.name,
+      isPrescribed: ex.is_prescribed,
       sets: (ex.sets ?? []).map((s) => {
         const effort_type = normalizeEffortType(s.effort_type);
         return {
@@ -104,10 +107,12 @@ export async function updateWorkout(workoutId: string, form: WorkoutFormData): P
 }
 
 /**
- * Program day keys that already have at least one saved workout for this
- * user + program. GYM-11 Pass 1 treats a program day as "done" purely on
- * this existence check (no partial-completion percentage yet — see
- * lib/programProgress.ts).
+ * Program day keys that meet GYM-11's 50% completion rule (AC20-24), derived
+ * fresh from every saved exercise/set tagged with each program day rather
+ * than a persisted flag — see the "derive over persist" note in project
+ * memory. Aggregating across *all* saved workout rows for a given key (not
+ * just the most recent) is what lets a later Resume session (AC29-31)
+ * combine with an earlier partial save without any extra bookkeeping.
  */
 export async function fetchCompletedProgramDayKeys(
   userId: string,
@@ -115,14 +120,38 @@ export async function fetchCompletedProgramDayKeys(
 ): Promise<Set<string>> {
   const { data, error } = await supabase
     .from("workouts")
-    .select("program_day_key")
+    .select(
+      "program_day_key, exercises(is_prescribed, sets(effort_type, effort_value, reps, duration_unit))"
+    )
     .eq("user_id", userId)
     .eq("program_id", programId)
     .not("program_day_key", "is", null);
 
   if (error) throw new Error(error.message);
 
-  return new Set((data ?? []).map((w) => w.program_day_key as string));
+  const byKey = new Map<string, { prescribedComplete: number; anyComplete: boolean }>();
+  for (const row of data ?? []) {
+    const key = row.program_day_key as string;
+    const entry = byKey.get(key) ?? { prescribedComplete: 0, anyComplete: false };
+    for (const ex of row.exercises ?? []) {
+      if ((ex.sets ?? []).some(isSetComplete)) {
+        entry.anyComplete = true;
+        if (ex.is_prescribed) entry.prescribedComplete += 1;
+      }
+    }
+    byKey.set(key, entry);
+  }
+
+  const completed = new Set<string>();
+  for (const [key, { prescribedComplete, anyComplete }] of byKey) {
+    const ref = findProgramDay(programId, key);
+    const total = ref ? prescribedExerciseCount(ref.day) : 0;
+    // A 0-prescribed day (HIIT/rounds-only) has no ratio to compute — treat
+    // any saved exercise as meeting the bar instead of dividing by zero.
+    const meetsThreshold = total === 0 ? anyComplete : prescribedComplete / total >= 0.5;
+    if (meetsThreshold) completed.add(key);
+  }
+  return completed;
 }
 
 export async function deleteWorkout(workoutId: string): Promise<void> {
@@ -134,7 +163,7 @@ async function insertExercises(workoutId: string, exercises: WorkoutFormData["ex
   for (const exercise of exercises) {
     const { data: insertedExercise, error: exerciseError } = await supabase
       .from("exercises")
-      .insert({ workout_id: workoutId, name: exercise.name })
+      .insert({ workout_id: workoutId, name: exercise.name, is_prescribed: exercise.isPrescribed ?? false })
       .select("id")
       .single();
 

@@ -25,6 +25,8 @@ export interface ExerciseData {
   targetLabel?: string;
   /** Program prefill: lets the user swap to/from the program's listed Alternative exercise (GYM-11 AC11/12). Display/UI only — never persisted. */
   altToggle?: AltToggleInfo;
+  /** True when this exercise came from the program's prescribed list rather than being added manually (GYM-11 AC14/20). Persisted. */
+  isPrescribed?: boolean;
 }
 
 export interface WorkoutFormData {
