@@ -1,5 +1,6 @@
 import LandingHeader from "@/components/landing/LandingHeader";
 import Hero from "@/components/landing/Hero";
+import CorePositioning from "@/components/landing/CorePositioning";
 
 export default function Home() {
   return (
@@ -7,6 +8,7 @@ export default function Home() {
       <LandingHeader />
       <main>
         <Hero />
+        <CorePositioning />
       </main>
     </div>
   );
