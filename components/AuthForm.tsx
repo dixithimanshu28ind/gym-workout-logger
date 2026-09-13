@@ -9,9 +9,10 @@ interface AuthFormProps {
   mode: "signup" | "signin";
   onSuccess?: (userId: string) => void;
   onSwitchMode?: (mode: "signup" | "signin") => void;
+  onClose?: () => void;
 }
 
-export default function AuthForm({ mode, onSuccess, onSwitchMode }: AuthFormProps) {
+export default function AuthForm({ mode, onSuccess, onSwitchMode, onClose }: AuthFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +22,11 @@ export default function AuthForm({ mode, onSuccess, onSwitchMode }: AuthFormProp
   const [submitting, setSubmitting] = useState(false);
 
   const isSignUp = mode === "signup";
+
+  const handleForgotPassword = () => {
+    onClose?.();
+    router.push("/forgot-password");
+  };
 
   const handleSuccess = (userId: string) => {
     if (onSuccess) {
@@ -115,9 +121,20 @@ export default function AuthForm({ mode, onSuccess, onSwitchMode }: AuthFormProp
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1">
-            Password
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="password" className="block text-sm font-medium">
+              Password
+            </label>
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-sm underline text-neutral-600"
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
           <input
             id="password"
             type="password"

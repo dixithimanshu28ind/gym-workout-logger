@@ -16,7 +16,7 @@ export default function AuthModal({
 }) {
   return (
     <Modal onClose={onClose} maxWidth="max-w-md">
-      <AuthForm mode={mode} onSuccess={onSuccess} onSwitchMode={onSwitchMode} />
+      <AuthForm mode={mode} onSuccess={onSuccess} onSwitchMode={onSwitchMode} onClose={onClose} />
     </Modal>
   );
 }
