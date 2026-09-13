@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationGuard } from "@/contexts/NavigationGuardContext";
 import { fetchProfile } from "@/lib/profile";
 import { getProgramById } from "@/lib/programs";
+import { getProgramAbbreviation } from "@/lib/programAbbreviation";
 import {
   createWorkout,
   deleteWorkout,
@@ -234,6 +235,9 @@ function NewWorkoutPageInner() {
 
   const loggedDates = useMemo(() => new Set(dateToWorkoutIds.keys()), [dateToWorkoutIds]);
   const selectedProgram = getProgramById(selectedProgramId);
+
+  const savedSection = sections.find((s) => s.data.id);
+  const dateProgramId = savedSection?.data.program_id ?? null;
 
   const completedProgramDayKeys = useMemo(
     () =>
@@ -580,6 +584,15 @@ function NewWorkoutPageInner() {
           </>
         )}
       </p>
+
+      {savedSection && (
+        <p className="text-sm text-neutral-500">
+          Logged under <span className="font-medium">{getProgramAbbreviation(dateProgramId)}</span>
+          {dateProgramId !== selectedProgramId &&
+            ` — you've since switched to ${getProgramAbbreviation(selectedProgramId)}`}
+          .
+        </p>
+      )}
 
       {error && (
         <p className="text-sm text-red-600" role="alert">

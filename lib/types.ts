@@ -61,6 +61,7 @@ export interface WorkoutSummary {
   workout_type: string;
   workout_type_custom: string | null;
   exerciseCount: number;
+  program_id: string | null;
 }
 
 export type GymExperience = "rookie" | "intermediate" | "expert";

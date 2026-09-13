@@ -7,7 +7,7 @@ import { findProgramDay, prescribedExerciseCount } from "@/lib/programProgress";
 export async function fetchWorkoutSummaries(userId: string): Promise<WorkoutSummary[]> {
   const { data, error } = await supabase
     .from("workouts")
-    .select("id, date, workout_type, workout_type_custom, exercises(id)")
+    .select("id, date, workout_type, workout_type_custom, program_id, exercises(id)")
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
@@ -19,6 +19,7 @@ export async function fetchWorkoutSummaries(userId: string): Promise<WorkoutSumm
     workout_type: w.workout_type,
     workout_type_custom: w.workout_type_custom,
     exerciseCount: Array.isArray(w.exercises) ? w.exercises.length : 0,
+    program_id: w.program_id,
   }));
 }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { WorkoutSummary } from "@/lib/types";
 import { weekdayName } from "@/lib/dates";
 import { OTHER_WORKOUT_TYPE } from "@/lib/workoutTypes";
+import { getProgramAbbreviation } from "@/lib/programAbbreviation";
 
 function displayType(w: WorkoutSummary): string {
   return w.workout_type === OTHER_WORKOUT_TYPE && w.workout_type_custom
@@ -19,7 +20,8 @@ function WorkoutRow({ workouts, cap }: { workouts: WorkoutSummary[]; cap: number
         <div key={w.id} className={`min-w-0 flex-1 ${i > 0 ? "pl-4" : ""} ${i < visible.length - 1 || remaining > 0 ? "pr-4" : ""}`}>
           <p className="truncate font-medium">{displayType(w)}</p>
           <p className="text-sm text-neutral-500">
-            {w.exerciseCount} exercise{w.exerciseCount === 1 ? "" : "s"}
+            {w.exerciseCount} exercise{w.exerciseCount === 1 ? "" : "s"} ·{" "}
+            {getProgramAbbreviation(w.program_id)}
           </p>
         </div>
       ))}

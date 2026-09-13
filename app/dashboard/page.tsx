@@ -10,6 +10,7 @@ import { getProgramById } from "@/lib/programs";
 import { computeCurrentStreak, computeLongestStreak } from "@/lib/streak";
 import type { WorkoutSummary } from "@/lib/types";
 import WeeklyWorkoutHistory from "@/components/WeeklyWorkoutHistory";
+import WeekAtAGlance from "@/components/WeekAtAGlance";
 import AppShell from "@/components/AppShell";
 
 export default function DashboardPage() {
@@ -57,14 +58,20 @@ export default function DashboardPage() {
 
   const streak = computeCurrentStreak(workouts.map((w) => w.date));
   const longestStreak = computeLongestStreak(workouts.map((w) => w.date));
-  const isNewPersonalBest = streak > 0 && streak >= longestStreak.longestStreak;
   const selectedProgram = getProgramById(selectedProgramId);
   const hasProgram = !!selectedProgram;
   const hasWorkouts = workouts.length > 0;
 
+  const firstProgramDayKey = hasProgram
+    ? workouts.reduce<string | null>((earliest, w) => {
+        if (w.program_id !== selectedProgramId) return earliest;
+        return !earliest || w.date < earliest ? w.date : earliest;
+      }, null)
+    : null;
+
   return (
     <AppShell
-      title="Your Workouts"
+      title="My Workouts"
       actions={
         <Link
           href="/workout/new"
@@ -74,33 +81,10 @@ export default function DashboardPage() {
         </Link>
       }
     >
-      {longestStreak.visible && (
-        <div className="rounded-2xl bg-accent text-accent-foreground p-6 flex items-center gap-4">
-          <span className="text-4xl" aria-hidden>
-            🏆
-          </span>
-          <div>
-            <p className="text-sm font-medium">Your Longest Streak</p>
-            <p className="font-display text-3xl tracking-wide">
-              {longestStreak.longestStreak} day{longestStreak.longestStreak === 1 ? "" : "s"}
-            </p>
-            <p className="text-sm">
-              {isNewPersonalBest ? "New personal best!" : "Your personal best — can you beat it?"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-2xl bg-sidebar text-sidebar-foreground p-6 flex items-center gap-4">
-        <span className="text-4xl" aria-hidden>
-          🔥
+      <div className="flex justify-end">
+        <span className="rounded-full bg-accent/10 text-accent text-xs font-medium px-3 py-1">
+          {hasProgram ? selectedProgram.name : "My Own Program"}
         </span>
-        <div>
-          <p className="font-display text-3xl tracking-wide">
-            {streak} day{streak === 1 ? "" : "s"}
-          </p>
-          <p className="text-sm text-sidebar-foreground-muted">Current streak</p>
-        </div>
       </div>
 
       {error && (
@@ -113,11 +97,35 @@ export default function DashboardPage() {
         <p className="text-neutral-500">Loading workouts...</p>
       ) : (
         <>
-          {hasProgram && (
-            <p className="text-sm">
-              Your current plan is <span className="font-medium">{selectedProgram.name}</span>.
-            </p>
-          )}
+          <WeekAtAGlance workouts={workouts} firstProgramDayKey={firstProgramDayKey} />
+
+          <div className={`grid gap-4 ${longestStreak.visible ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className="rounded-2xl bg-sidebar text-sidebar-foreground p-5">
+              <p className="text-2xl" aria-hidden>
+                🔥
+              </p>
+              <p className="font-display text-2xl tracking-wide">
+                {streak} day{streak === 1 ? "" : "s"}
+              </p>
+              <p className="text-sm text-sidebar-foreground-muted">Current streak</p>
+            </div>
+            {longestStreak.visible && (
+              <div className="rounded-2xl border border-card-border bg-card p-5">
+                <p className="text-2xl" aria-hidden>
+                  🏆
+                </p>
+                <p className="font-display text-2xl tracking-wide">
+                  {longestStreak.longestStreak} day{longestStreak.longestStreak === 1 ? "" : "s"}
+                </p>
+                <p className="text-sm text-neutral-500">Longest streak</p>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-card-border bg-card p-5">
+            <p className="text-sm text-neutral-500">Workouts Logged</p>
+            <p className="font-display text-2xl tracking-wide">{workouts.length} total</p>
+          </div>
 
           {!hasWorkouts ? (
             <div className="text-center py-8 space-y-1">
