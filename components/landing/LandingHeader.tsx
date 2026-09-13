@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/contexts/AuthModalContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_LINKS = [
-  { href: "#features", label: "Features" },
+  { href: "/features", label: "Features" },
   { href: "/programs", label: "Programs" },
   { href: "#how-it-works", label: "How It Works" },
 ];
@@ -13,11 +14,12 @@ const NAV_LINKS = [
 export default function LandingHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { openSignUp, openSignIn } = useAuthModal();
+  const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-30 border-b border-card-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="font-display text-2xl tracking-tight">
+        <Link href={user ? "/dashboard" : "/"} className="font-display text-2xl tracking-tight">
           LOG<span className="text-accent">&amp;</span>TRAIN
         </Link>
 
@@ -40,20 +42,31 @@ export default function LandingHeader() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <button
-            type="button"
-            onClick={() => openSignIn()}
-            className="text-sm font-medium hover:text-accent transition"
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => openSignUp()}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 transition"
-          >
-            Start Training
-          </button>
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 transition"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => openSignIn()}
+                className="text-sm font-medium hover:text-accent transition"
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => openSignUp()}
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 transition"
+              >
+                Start Training
+              </button>
+            </>
+          )}
         </div>
 
         <button
@@ -96,26 +109,38 @@ export default function LandingHeader() {
               </span>
             </span>
             <div className="mt-2 flex flex-col gap-3 border-t border-card-border pt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  openSignIn();
-                }}
-                className="text-left text-sm font-medium"
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  openSignUp();
-                }}
-                className="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-foreground hover:opacity-90 transition"
-              >
-                Start Training
-              </button>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-foreground hover:opacity-90 transition"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openSignIn();
+                    }}
+                    className="text-left text-sm font-medium"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openSignUp();
+                    }}
+                    className="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-foreground hover:opacity-90 transition"
+                  >
+                    Start Training
+                  </button>
+                </>
+              )}
             </div>
           </nav>
         </div>

@@ -65,7 +65,7 @@ export default function Footer() {
             <ul className="mt-4 space-y-3">
               <li>
                 <Link
-                  href="#features"
+                  href="/features"
                   className={`text-sm text-sidebar-foreground transition hover:text-accent ${FOCUS_CLASS}`}
                 >
                   Features
