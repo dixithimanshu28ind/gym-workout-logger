@@ -38,13 +38,20 @@ function ordinalSuffix(day: number): string {
   }
 }
 
-/** Short ordinal date for compact UI, e.g. "13th Sep 26". */
-export function formatShortOrdinalDate(dateKey: string): string {
+export interface OrdinalDateParts {
+  day: number;
+  suffix: string;
+  month: string;
+  year: string;
+}
+
+/** Parts for a compact ordinal date, e.g. day 13 + suffix "th" + "Sep" + "26" — lets the suffix be rendered as a superscript to save width. */
+export function getOrdinalDateParts(dateKey: string): OrdinalDateParts {
   const date = parseLocalDateKey(dateKey);
   const day = date.getDate();
   const month = date.toLocaleDateString("en-US", { month: "short" });
   const year = String(date.getFullYear()).slice(-2);
-  return `${day}${ordinalSuffix(day)} ${month} ${year}`;
+  return { day, suffix: ordinalSuffix(day), month, year };
 }
 
 export function addDays(d: Date, n: number): Date {
