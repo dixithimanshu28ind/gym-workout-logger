@@ -10,9 +10,9 @@ export default function FinalCtaSection() {
   const router = useRouter();
 
   return (
-    <section className="bg-sidebar py-12 text-sidebar-foreground sm:py-16">
+    <section className="bg-accent py-12 sm:py-16">
       <div className="mx-auto max-w-3xl px-6 text-center">
-        <h2 className="font-display text-3xl leading-tight sm:text-4xl">
+        <h2 className="font-display text-3xl leading-tight text-white sm:text-4xl">
           Ready for your next workout?
         </h2>
         <div className="mt-8 flex justify-center">
@@ -20,7 +20,7 @@ export default function FinalCtaSection() {
             <button
               type="button"
               onClick={() => router.push("/workout/new")}
-              className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground hover:opacity-90 transition"
+              className="rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-background hover:opacity-90 transition"
             >
               Log a Workout
             </button>
@@ -28,7 +28,7 @@ export default function FinalCtaSection() {
             <button
               type="button"
               onClick={() => openSignUp()}
-              className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground hover:opacity-90 transition"
+              className="rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-background hover:opacity-90 transition"
             >
               Start Training
             </button>
