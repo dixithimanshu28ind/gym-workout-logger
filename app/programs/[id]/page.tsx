@@ -36,10 +36,17 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     if (loading || !user) return;
     fetchProfile(user.id)
-      .then((profile) => setSelectedId(profile?.selected_program_id ?? null))
+      .then((profile) => {
+        const selected = profile?.selected_program_id ?? null;
+        setSelectedId(selected);
+        // Already on this program from a previous visit — the disclaimer was
+        // agreed to when they selected it, so keep the checkbox checked
+        // instead of making it look un-agreed-to every time they revisit.
+        if (selected === id) setAgreed(true);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load your program."))
       .finally(() => setLoadingSelection(false));
-  }, [user, loading]);
+  }, [user, loading, id]);
 
   if (loading || (user && loadingSelection)) {
     return (
@@ -107,6 +114,7 @@ export default function ProgramDetailPage({ params }: { params: Promise<{ id: st
       await leaveProgram(user.id);
       setSelectedId(null);
       setJustSelected(false);
+      setAgreed(false);
       setShowLeaveConfirm(false);
       setShowLeaveSuccess(true);
     } catch (e) {

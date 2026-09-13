@@ -59,7 +59,14 @@ export default function AppShell({
     guardedNavigate(() => router.push(href));
   };
 
-  const handleSignOut = () => guardedNavigate(() => signOut());
+  const handleSignOut = () =>
+    guardedNavigate(() => {
+      // Navigate first: once the current protected page is gone, its own
+      // "no user -> /signin" redirect effect can no longer fire and race
+      // this one once signOut() flips the auth state to null.
+      router.push("/");
+      signOut();
+    });
 
   const today = new Date().toLocaleDateString(undefined, {
     year: "numeric",
