@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const NAV_LINKS = [
   { href: "/features", label: "Features" },
   { href: "/programs", label: "Programs" },
-  { href: "#how-it-works", label: "How It Works" },
+  { href: "/how-it-works", label: "How It Works" },
 ];
 
 export default function LandingHeader() {

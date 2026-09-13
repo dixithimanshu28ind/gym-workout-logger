@@ -81,7 +81,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#how-it-works"
+                  href="/how-it-works"
                   className={`text-sm text-sidebar-foreground transition hover:text-accent ${FOCUS_CLASS}`}
                 >
                   How It Works
