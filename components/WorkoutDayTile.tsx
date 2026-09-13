@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { WorkoutSummary } from "@/lib/types";
-import { weekdayName } from "@/lib/dates";
+import { formatShortOrdinalDate, weekdayName } from "@/lib/dates";
 import { OTHER_WORKOUT_TYPE } from "@/lib/workoutTypes";
 import { getProgramAbbreviation } from "@/lib/programAbbreviation";
 
@@ -50,7 +50,7 @@ export default function WorkoutDayTile({
       className="flex items-center gap-4 rounded-xl border border-card-border bg-card p-4 hover:border-accent transition"
     >
       <div className="w-24 shrink-0 border-r border-card-border pr-4">
-        <p className="font-medium">{dateKey}</p>
+        <p className="font-medium">{formatShortOrdinalDate(dateKey)}</p>
         <p className="text-xs text-neutral-400">{weekdayName(dateKey)}</p>
         <span className="mt-1 inline-block w-fit rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
           {dayProgramAbbreviation(workouts)}

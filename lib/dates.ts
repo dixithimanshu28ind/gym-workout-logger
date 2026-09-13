@@ -24,6 +24,29 @@ export function weekdayName(dateKey: string): string {
   return WEEKDAY_NAMES[parseLocalDateKey(dateKey).getDay()];
 }
 
+function ordinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return "th";
+  switch (day % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+/** Short ordinal date for compact UI, e.g. "13th Sep 26". */
+export function formatShortOrdinalDate(dateKey: string): string {
+  const date = parseLocalDateKey(dateKey);
+  const day = date.getDate();
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}${ordinalSuffix(day)} ${month} ${year}`;
+}
+
 export function addDays(d: Date, n: number): Date {
   const copy = new Date(d);
   copy.setDate(copy.getDate() + n);
