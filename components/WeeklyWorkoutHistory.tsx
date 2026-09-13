@@ -19,9 +19,11 @@ function enumerateDateKeys(startKey: string, endKey: string): string[] {
 
 function MissedDayTile({ dateKey }: { dateKey: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-card-border bg-card p-4">
-      <p className="font-medium text-neutral-400">{weekdayName(dateKey)}</p>
-      <div className="text-right">
+    <div className="flex items-center gap-4 rounded-xl border border-card-border bg-card p-4">
+      <div className="w-24 shrink-0 border-r border-card-border pr-4">
+        <p className="font-medium text-neutral-400">{weekdayName(dateKey)}</p>
+      </div>
+      <div className="flex-1 text-right">
         <p className="text-sm text-neutral-500">Missed</p>
         <Link href={`/workout/new?date=${dateKey}`} className="text-sm text-accent hover:underline">
           Log now
