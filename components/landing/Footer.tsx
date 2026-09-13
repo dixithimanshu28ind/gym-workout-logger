@@ -45,7 +45,7 @@ export default function Footer() {
   const { openSignUp, openSignIn } = useAuthModal();
 
   return (
-    <footer className="bg-sidebar text-sidebar-foreground">
+    <footer className="border-t border-white/10 bg-sidebar text-sidebar-foreground">
       <div className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
         <div className="grid gap-10 md:grid-cols-[2fr_1fr_1fr_1fr]">
           <div className="max-w-xs">

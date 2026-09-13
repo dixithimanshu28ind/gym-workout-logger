@@ -10,7 +10,7 @@ export default function FinalCtaSection() {
   const router = useRouter();
 
   return (
-    <section className="bg-sidebar py-16 text-sidebar-foreground sm:py-24">
+    <section className="bg-sidebar py-12 text-sidebar-foreground sm:py-16">
       <div className="mx-auto max-w-3xl px-6 text-center">
         <h2 className="font-display text-3xl leading-tight sm:text-4xl">
           Ready for your next workout?
