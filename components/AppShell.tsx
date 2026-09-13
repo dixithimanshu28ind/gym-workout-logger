@@ -1,13 +1,14 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationGuard } from "@/contexts/NavigationGuardContext";
+import { fetchProfile } from "@/lib/profile";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard", label: "My Journey" },
   { href: "/workout/new", label: "Log Workout" },
   { href: "/programs", label: "Programs" },
   { href: "/profile", label: "Profile" },
@@ -30,6 +31,25 @@ export default function AppShell({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { guardedNavigate } = useNavigationGuard();
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setProfileName(null);
+      return;
+    }
+    let cancelled = false;
+    fetchProfile(user.id)
+      .then((profile) => {
+        if (!cancelled) setProfileName(profile?.name?.trim() || null);
+      })
+      .catch(() => {
+        if (!cancelled) setProfileName(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
@@ -52,7 +72,7 @@ export default function AppShell({
       <aside className="hidden sm:flex w-56 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground px-4 py-6">
         <div className="space-y-8">
           <div className="font-display text-xl tracking-wide px-2">
-            GYM<span className="text-accent">LOG</span>
+            Log &amp; <span className="text-accent">Train</span>
           </div>
           <nav className="space-y-1">
             {NAV_ITEMS.map((item) => (
@@ -81,7 +101,7 @@ export default function AppShell({
               {initials(user.email ?? "??")}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium">{user.email}</p>
+              <p className="truncate text-xs font-medium">{profileName ?? user.email}</p>
               <button
                 onClick={handleSignOut}
                 className="text-xs text-sidebar-foreground-muted hover:text-sidebar-foreground hover:underline"
@@ -96,7 +116,7 @@ export default function AppShell({
       <div className="flex-1 flex flex-col min-w-0">
         <div className="sm:hidden flex items-center justify-between bg-sidebar text-sidebar-foreground px-4 py-3">
           <span className="font-display text-lg tracking-wide">
-            GYM<span className="text-accent">LOG</span>
+            Log &amp; <span className="text-accent">Train</span>
           </span>
           {user && (
             <button
