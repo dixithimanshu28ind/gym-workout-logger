@@ -71,7 +71,12 @@ function bulletListNode(items: string[]) {
   };
 }
 
-function richTextParagraphs(texts: (string | undefined)[]): unknown {
+// Payload's generated richText field type is deep and generic-parameterized;
+// these builders hand-construct plain Lexical JSON (empirically verified to
+// round-trip correctly through the API), so `any` sidesteps fighting that
+// generated type rather than reflecting genuine type-safety risk.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function richTextParagraphs(texts: (string | undefined)[]): any {
   const filtered = texts.filter((t): t is string => Boolean(t && t.trim()));
   if (filtered.length === 0) return undefined;
   return {
@@ -86,7 +91,8 @@ function richTextParagraphs(texts: (string | undefined)[]): unknown {
   };
 }
 
-function richTextBulletList(items: string[]): unknown {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function richTextBulletList(items: string[]): any {
   if (items.length === 0) return undefined;
   return {
     root: {
@@ -141,6 +147,16 @@ const TARGET_TAXONOMY: Record<string, { parent?: string; targetType: TargetType 
   Obliques: { parent: "Core", targetType: "core" },
 };
 
+// Mirrors the beforeValidate slug hook on Targets/Exercises/Programs — computed
+// here too since the generated create-data types require `slug` up front.
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 function splitTargets(targetStr: string): string[] {
   return targetStr
     .split("+")
@@ -152,9 +168,21 @@ function splitTargets(targetStr: string): string[] {
 // Equipment inference — best-effort, optional field.
 // ---------------------------------------------------------------------------
 
-function inferEquipment(name: string): string[] {
+type EquipmentValue =
+  | "barbell"
+  | "dumbbell"
+  | "cable"
+  | "machine"
+  | "bench"
+  | "bodyweight"
+  | "resistance_band"
+  | "treadmill"
+  | "stationary_bike"
+  | "other";
+
+function inferEquipment(name: string): EquipmentValue[] {
   const n = name.toLowerCase();
-  const eq: string[] = [];
+  const eq: EquipmentValue[] = [];
   if (/\bbarbell\b/.test(n)) eq.push("barbell");
   if (/\b(dumbbell|db)\b/.test(n)) eq.push("dumbbell");
   if (/\bcable\b/.test(n)) eq.push("cable");
@@ -175,7 +203,8 @@ type ParsedPrescription =
   | { prescriptionType: "range"; minReps: number; maxReps: number }
   | { prescriptionType: "fixed"; fixedReps: number }
   | { prescriptionType: "time"; durationValue: number; durationUnit: "sec" | "min" }
-  | { prescriptionType: "custom"; customPrescription: unknown };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | { prescriptionType: "custom"; customPrescription: any };
 
 function parsePrescription(targetReps: string): {
   base: ParsedPrescription;
@@ -492,7 +521,9 @@ const ABBREVIATIONS: Record<string, string> = {
   "full-body": "Full body",
 };
 
-const PROGRAM_TYPE: Record<string, string> = {
+type ProgramTypeValue = "bro_split" | "ppl" | "upper_lower" | "full_body" | "strength" | "mobility" | "custom";
+
+const PROGRAM_TYPE: Record<string, ProgramTypeValue> = {
   "bro-split": "bro_split",
   pplul: "ppl",
   "full-body": "full_body",
@@ -528,8 +559,10 @@ async function main() {
       const parentId = taxonomy.parent ? targetIdCache.get(taxonomy.parent) : undefined;
       const created = await payload.create({
         collection: "targets",
+        draft: false,
         data: {
           name,
+          slug: slugify(name),
           targetType: taxonomy.targetType,
           parentTarget: parentId,
           active: true,
@@ -573,8 +606,10 @@ async function main() {
     }
     const created = await payload.create({
       collection: "exercises",
+      draft: false,
       data: {
         name,
+        slug: slugify(name),
         targets: atomicIds,
         primaryTarget: atomicIds[0],
         category: "strength",
