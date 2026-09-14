@@ -5,7 +5,9 @@ import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import { s3Storage } from "@payloadcms/storage-s3";
 import { buildConfig } from "payload";
 
+import { Exercises } from "./collections/Exercises";
 import { Media } from "./collections/Media";
+import { Targets } from "./collections/Targets";
 import { Users } from "./collections/Users";
 
 const filename = fileURLToPath(import.meta.url);
@@ -15,7 +17,7 @@ export default buildConfig({
   admin: {
     user: Users.slug,
   },
-  collections: [Users, Media],
+  collections: [Users, Media, Targets, Exercises],
   editor: lexicalEditor(),
   routes: {
     api: "/api/payload",

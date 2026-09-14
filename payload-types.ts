@@ -69,15 +69,23 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    targets: Target;
+    exercises: Exercise;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    targets: {
+      relatedExercises: 'exercises';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    targets: TargetsSelect<false> | TargetsSelect<true>;
+    exercises: ExercisesSelect<false> | ExercisesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -163,6 +171,126 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "targets".
+ */
+export interface Target {
+  id: number;
+  name: string;
+  /**
+   * URL-safe identifier. Auto-filled from Name, editable.
+   */
+  slug: string;
+  targetType: 'body_part' | 'muscle_region' | 'core' | 'warm_up' | 'cool_down' | 'mobility' | 'conditioning' | 'other';
+  /**
+   * e.g. "Upper Chest" → "Chest", "Rear Shoulders" → "Shoulders"
+   */
+  parentTarget?: (number | null) | Target;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  image?: (number | null) | Media;
+  /**
+   * Inactive targets stay attached to existing content but are hidden from new selections.
+   */
+  active?: boolean | null;
+  displayOrder?: number | null;
+  relatedExercises?: {
+    docs?: (number | Exercise)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exercises".
+ */
+export interface Exercise {
+  id: number;
+  name: string;
+  /**
+   * URL-safe identifier. Auto-filled from Name, editable.
+   */
+  slug: string;
+  targets: (number | Target)[];
+  primaryTarget?: (number | null) | Target;
+  category: 'strength' | 'core' | 'warm_up' | 'cool_down' | 'mobility' | 'cardio' | 'recovery' | 'other';
+  equipment?:
+    | (
+        | 'barbell'
+        | 'dumbbell'
+        | 'cable'
+        | 'machine'
+        | 'bench'
+        | 'bodyweight'
+        | 'resistance_band'
+        | 'treadmill'
+        | 'stationary_bike'
+        | 'other'
+      )[]
+    | null;
+  /**
+   * How sets are measured by default. Individual program items can override this.
+   */
+  defaultMeasurementType: 'total_weight' | 'weight_each' | 'bodyweight' | 'duration';
+  instructions?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  coachingNotes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * General alternatives. Individual program items may override these.
+   */
+  defaultAlternatives?: (number | Exercise)[] | null;
+  image?: (number | null) | Media;
+  demoVideo?: (number | null) | Media;
+  /**
+   * Inactive exercises stay visible in programs already using them but are hidden from new selections.
+   */
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -192,6 +320,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'targets';
+        value: number | Target;
+      } | null)
+    | ({
+        relationTo: 'exercises';
+        value: number | Exercise;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -274,6 +410,44 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "targets_select".
+ */
+export interface TargetsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  targetType?: T;
+  parentTarget?: T;
+  description?: T;
+  image?: T;
+  active?: T;
+  displayOrder?: T;
+  relatedExercises?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exercises_select".
+ */
+export interface ExercisesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  targets?: T;
+  primaryTarget?: T;
+  category?: T;
+  equipment?: T;
+  defaultMeasurementType?: T;
+  instructions?: T;
+  coachingNotes?: T;
+  defaultAlternatives?: T;
+  image?: T;
+  demoVideo?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
