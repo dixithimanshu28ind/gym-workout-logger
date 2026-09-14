@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useAuthModal } from "@/contexts/AuthModalContext";
-import LogoMark from "@/components/LogoMark";
 
 const FOCUS_CLASS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar rounded-sm";
@@ -50,10 +49,8 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
         <div className="grid gap-10 md:grid-cols-[2fr_1fr_1fr_1fr]">
           <div className="max-w-xs">
-            <p className="flex items-center font-display text-2xl">
-              LOG
-              <LogoMark className="mx-0.5 h-[0.8em] w-auto translate-y-[0.05em] text-accent" />
-              TRAIN
+            <p className="font-display text-2xl">
+              LOG<span className="text-accent">&amp;</span>TRAIN
             </p>
             <p className="mt-2 text-sm text-sidebar-foreground-muted">Log. Train. Connect.</p>
             <p className="mt-4 text-sm text-sidebar-foreground-muted">
