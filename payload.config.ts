@@ -2,8 +2,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
+import { s3Storage } from "@payloadcms/storage-s3";
 import { buildConfig } from "payload";
 
+import { Media } from "./collections/Media";
 import { Users } from "./collections/Users";
 
 const filename = fileURLToPath(import.meta.url);
@@ -13,7 +15,7 @@ export default buildConfig({
   admin: {
     user: Users.slug,
   },
-  collections: [Users],
+  collections: [Users, Media],
   editor: lexicalEditor(),
   routes: {
     api: "/api/payload",
@@ -34,4 +36,21 @@ export default buildConfig({
     // let that run against a shared DB. Explicit, reviewed migrations only.
     push: false,
   }),
+  plugins: [
+    s3Storage({
+      collections: {
+        media: true,
+      },
+      bucket: process.env.S3_BUCKET || "",
+      config: {
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
+          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
+        },
+        endpoint: process.env.S3_ENDPOINT,
+        region: process.env.S3_REGION,
+        forcePathStyle: true,
+      },
+    }),
+  ],
 });
