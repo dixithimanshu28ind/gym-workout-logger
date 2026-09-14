@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Anton } from "next/font/google";
+import { Geist, Geist_Mono, Anton, Poppins } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NavigationGuardProvider } from "@/contexts/NavigationGuardContext";
@@ -22,6 +22,12 @@ const anton = Anton({
   subsets: ["latin"],
 });
 
+const poppins = Poppins({
+  variable: "--font-poppins",
+  weight: ["800"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Daily Gym Workout Logger",
   description: "A simple, no-friction way to log your gym workouts.",
@@ -31,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} ${poppins.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <AuthProvider>
