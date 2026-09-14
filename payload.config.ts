@@ -7,6 +7,7 @@ import { buildConfig } from "payload";
 
 import { Exercises } from "./collections/Exercises";
 import { Media } from "./collections/Media";
+import { Programs } from "./collections/Programs";
 import { Targets } from "./collections/Targets";
 import { Users } from "./collections/Users";
 
@@ -17,7 +18,7 @@ export default buildConfig({
   admin: {
     user: Users.slug,
   },
-  collections: [Users, Media, Targets, Exercises],
+  collections: [Users, Media, Targets, Exercises, Programs],
   editor: lexicalEditor(),
   routes: {
     api: "/api/payload",

@@ -71,6 +71,7 @@ export interface Config {
     media: Media;
     targets: Target;
     exercises: Exercise;
+    programs: Program;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +87,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     targets: TargetsSelect<false> | TargetsSelect<true>;
     exercises: ExercisesSelect<false> | ExercisesSelect<true>;
+    programs: ProgramsSelect<false> | ProgramsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -291,6 +293,683 @@ export interface Exercise {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "programs".
+ */
+export interface Program {
+  id: number;
+  name: string;
+  subtitle?: string | null;
+  /**
+   * URL-safe identifier. Auto-filled from Name, editable while in draft — locked once first published.
+   */
+  slug: string;
+  /**
+   * Short label for tiles and the logger, e.g. "Bro", "PPLUL".
+   */
+  abbreviation: string;
+  shortDescription: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  fullDescription?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  weeks: number;
+  daysPerWeek: number;
+  sessionMinutes?: number | null;
+  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'all_levels';
+  programType: 'bro_split' | 'ppl' | 'upper_lower' | 'full_body' | 'strength' | 'mobility' | 'custom';
+  customProgramTypeLabel?: string | null;
+  coverImage?: (number | null) | Media;
+  featured?: boolean | null;
+  active?: boolean | null;
+  sections?:
+    | (
+        | {
+            title: string;
+            description?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            items?:
+              | {
+                  itemType: 'exercise' | 'text';
+                  exercise?: (number | null) | Exercise;
+                  /**
+                   * Free-text prescription summary, e.g. "10–15 reps" or "5 min easy".
+                   */
+                  prescriptionText?: string | null;
+                  textContent?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  instructions?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  id?: string | null;
+                }[]
+              | null;
+            extraInfo?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            initiallyExpanded?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'warmUp';
+          }
+        | {
+            /**
+             * Stable identifier, e.g. "weeks-1-5". Locked once the program is first published — logged workouts reference it.
+             */
+            phaseKey: string;
+            name: string;
+            /**
+             * e.g. "Weeks 1–5 — Foundation". Editable.
+             */
+            displayTitle?: string | null;
+            phaseType:
+              | 'introduction'
+              | 'foundation'
+              | 'progression'
+              | 'strength'
+              | 'hypertrophy'
+              | 'conditioning'
+              | 'recovery'
+              | 'deload'
+              | 'assessment'
+              | 'custom';
+            customTypeLabel?: string | null;
+            description?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            /**
+             * Admin-only. Never exposed through the public API.
+             */
+            internalNotes?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            contentMode: 'create' | 'reuse' | 'info';
+            startWeek?: number | null;
+            endWeek?: number | null;
+            /**
+             * Must reference another phase in this program whose Content Mode is Create (no chaining reuse-of-reuse, which also rules out circular references).
+             */
+            sourcePhaseKey?: string | null;
+            /**
+             * Multiplier applied to the source phase's set counts (e.g. 0.5 for a deload). Prefill rounds up, minimum 1.
+             */
+            setsScale?: number | null;
+            dayOverrides?:
+              | {
+                  dayNumber: number;
+                  excluded?: boolean | null;
+                  notes?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  id?: string | null;
+                }[]
+              | null;
+            days?:
+              | {
+                  dayNumber: number;
+                  dayName: string;
+                  /**
+                   * Defaults to "Day {number} — {name}". Editable.
+                   */
+                  displayTitle?: string | null;
+                  description?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  focusTargets?: (number | Target)[] | null;
+                  warmUpBehavior: 'use_program' | 'add_to_program' | 'replace_program' | 'none';
+                  dayWarmUpItems?:
+                    | {
+                        itemType: 'exercise' | 'text';
+                        exercise?: (number | null) | Exercise;
+                        /**
+                         * Free-text prescription summary, e.g. "10–15 reps" or "5 min easy".
+                         */
+                        prescriptionText?: string | null;
+                        textContent?: {
+                          root: {
+                            type: string;
+                            children: {
+                              type: any;
+                              version: number;
+                              [k: string]: unknown;
+                            }[];
+                            direction: ('ltr' | 'rtl') | null;
+                            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                            indent: number;
+                            version: number;
+                          };
+                          [k: string]: unknown;
+                        } | null;
+                        instructions?: {
+                          root: {
+                            type: string;
+                            children: {
+                              type: any;
+                              version: number;
+                              [k: string]: unknown;
+                            }[];
+                            direction: ('ltr' | 'rtl') | null;
+                            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                            indent: number;
+                            version: number;
+                          };
+                          [k: string]: unknown;
+                        } | null;
+                        id?: string | null;
+                      }[]
+                    | null;
+                  exerciseGroups?:
+                    | {
+                        name: string;
+                        workoutType?:
+                          | (
+                              | 'Full Body'
+                              | 'Upper Body'
+                              | 'Lower Body'
+                              | 'Push'
+                              | 'Pull'
+                              | 'Legs'
+                              | 'Chest'
+                              | 'Back'
+                              | 'Shoulders'
+                              | 'Arms'
+                              | 'Biceps'
+                              | 'Triceps'
+                              | 'Core / Abs'
+                              | 'Calves'
+                              | 'Forearms'
+                              | 'Cardio'
+                              | 'HIIT'
+                              | 'Mobility / Recovery'
+                              | 'Rest Day'
+                              | 'Other'
+                            )
+                          | null;
+                        groupTarget?: (number | null) | Target;
+                        description?: {
+                          root: {
+                            type: string;
+                            children: {
+                              type: any;
+                              version: number;
+                              [k: string]: unknown;
+                            }[];
+                            direction: ('ltr' | 'rtl') | null;
+                            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                            indent: number;
+                            version: number;
+                          };
+                          [k: string]: unknown;
+                        } | null;
+                        items?:
+                          | {
+                              exercise: number | Exercise;
+                              /**
+                               * Overrides the exercise's default measurement type for this item only.
+                               */
+                              measurementType?: ('total_weight' | 'weight_each' | 'bodyweight' | 'duration') | null;
+                              sets?: number | null;
+                              prescriptionType:
+                                'fixed' | 'range' | 'time' | 'distance' | 'until_comfortable' | 'custom';
+                              fixedReps?: number | null;
+                              minReps?: number | null;
+                              maxReps?: number | null;
+                              durationValue?: number | null;
+                              durationUnit?: ('sec' | 'min') | null;
+                              distanceValue?: number | null;
+                              distanceUnit?: ('m' | 'km' | 'mi') | null;
+                              /**
+                               * Use only when the prescription can't be represented by the structured fields above.
+                               */
+                              customPrescription?: {
+                                root: {
+                                  type: string;
+                                  children: {
+                                    type: any;
+                                    version: number;
+                                    [k: string]: unknown;
+                                  }[];
+                                  direction: ('ltr' | 'rtl') | null;
+                                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                  indent: number;
+                                  version: number;
+                                };
+                                [k: string]: unknown;
+                              } | null;
+                              perSide?: boolean | null;
+                              perSideLabel?: ('side' | 'arm' | 'leg') | null;
+                              minRestSec?: number | null;
+                              maxRestSec?: number | null;
+                              /**
+                               * Pre-populate from the exercise's Default Alternatives, then adjust for this program item only.
+                               */
+                              alternatives?: (number | Exercise)[] | null;
+                              notes?: {
+                                root: {
+                                  type: string;
+                                  children: {
+                                    type: any;
+                                    version: number;
+                                    [k: string]: unknown;
+                                  }[];
+                                  direction: ('ltr' | 'rtl') | null;
+                                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                  indent: number;
+                                  version: number;
+                                };
+                                [k: string]: unknown;
+                              } | null;
+                              extraInfo?: {
+                                root: {
+                                  type: string;
+                                  children: {
+                                    type: any;
+                                    version: number;
+                                    [k: string]: unknown;
+                                  }[];
+                                  direction: ('ltr' | 'rtl') | null;
+                                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                                  indent: number;
+                                  version: number;
+                                };
+                                [k: string]: unknown;
+                              } | null;
+                              enabled?: boolean | null;
+                              id?: string | null;
+                            }[]
+                          | null;
+                        displayTableHeader?: boolean | null;
+                        enabled?: boolean | null;
+                        id?: string | null;
+                      }[]
+                    | null;
+                  /**
+                   * Structured interval rounds, e.g. for a HIIT day. Leave empty if this day has none.
+                   */
+                  intervals?: {
+                    intro?: {
+                      root: {
+                        type: string;
+                        children: {
+                          type: any;
+                          version: number;
+                          [k: string]: unknown;
+                        }[];
+                        direction: ('ltr' | 'rtl') | null;
+                        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                        indent: number;
+                        version: number;
+                      };
+                      [k: string]: unknown;
+                    } | null;
+                    rounds?:
+                      | {
+                          label: string;
+                          warmUp?: string | null;
+                          hardEffort: string;
+                          recovery: string;
+                          repeat: string;
+                          note?: string | null;
+                          id?: string | null;
+                        }[]
+                      | null;
+                    coolDown?: string | null;
+                  };
+                  progressionNote?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  extraInfo?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  enabled?: boolean | null;
+                  id?: string | null;
+                }[]
+              | null;
+            instructions?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            progressionGuidance?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            recoveryGuidance?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            initiallyExpanded?: boolean | null;
+            enabled?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'phase';
+          }
+        | {
+            title: string;
+            description?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            items?:
+              | {
+                  itemType: 'exercise' | 'text';
+                  exercise?: (number | null) | Exercise;
+                  /**
+                   * Free-text prescription summary, e.g. "10–15 reps" or "5 min easy".
+                   */
+                  prescriptionText?: string | null;
+                  textContent?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  instructions?: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  } | null;
+                  id?: string | null;
+                }[]
+              | null;
+            extraInfo?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            initiallyExpanded?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'coolDown';
+          }
+        | {
+            title: string;
+            content: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            displayStyle?: ('standard' | 'information' | 'success' | 'warning' | 'safety') | null;
+            collapsible?: boolean | null;
+            initiallyExpanded?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richText';
+          }
+        | {
+            title: string;
+            safetyContent: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            requireAcknowledgement?: boolean | null;
+            acknowledgementContent?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            actionLabel?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'safety';
+          }
+      )[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -328,6 +1007,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'exercises';
         value: number | Exercise;
+      } | null)
+    | ({
+        relationTo: 'programs';
+        value: number | Program;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -448,6 +1131,204 @@ export interface ExercisesSelect<T extends boolean = true> {
   active?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "programs_select".
+ */
+export interface ProgramsSelect<T extends boolean = true> {
+  name?: T;
+  subtitle?: T;
+  slug?: T;
+  abbreviation?: T;
+  shortDescription?: T;
+  fullDescription?: T;
+  weeks?: T;
+  daysPerWeek?: T;
+  sessionMinutes?: T;
+  difficulty?: T;
+  programType?: T;
+  customProgramTypeLabel?: T;
+  coverImage?: T;
+  featured?: T;
+  active?: T;
+  sections?:
+    | T
+    | {
+        warmUp?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              items?:
+                | T
+                | {
+                    itemType?: T;
+                    exercise?: T;
+                    prescriptionText?: T;
+                    textContent?: T;
+                    instructions?: T;
+                    id?: T;
+                  };
+              extraInfo?: T;
+              initiallyExpanded?: T;
+              id?: T;
+              blockName?: T;
+            };
+        phase?:
+          | T
+          | {
+              phaseKey?: T;
+              name?: T;
+              displayTitle?: T;
+              phaseType?: T;
+              customTypeLabel?: T;
+              description?: T;
+              internalNotes?: T;
+              contentMode?: T;
+              startWeek?: T;
+              endWeek?: T;
+              sourcePhaseKey?: T;
+              setsScale?: T;
+              dayOverrides?:
+                | T
+                | {
+                    dayNumber?: T;
+                    excluded?: T;
+                    notes?: T;
+                    id?: T;
+                  };
+              days?:
+                | T
+                | {
+                    dayNumber?: T;
+                    dayName?: T;
+                    displayTitle?: T;
+                    description?: T;
+                    focusTargets?: T;
+                    warmUpBehavior?: T;
+                    dayWarmUpItems?:
+                      | T
+                      | {
+                          itemType?: T;
+                          exercise?: T;
+                          prescriptionText?: T;
+                          textContent?: T;
+                          instructions?: T;
+                          id?: T;
+                        };
+                    exerciseGroups?:
+                      | T
+                      | {
+                          name?: T;
+                          workoutType?: T;
+                          groupTarget?: T;
+                          description?: T;
+                          items?:
+                            | T
+                            | {
+                                exercise?: T;
+                                measurementType?: T;
+                                sets?: T;
+                                prescriptionType?: T;
+                                fixedReps?: T;
+                                minReps?: T;
+                                maxReps?: T;
+                                durationValue?: T;
+                                durationUnit?: T;
+                                distanceValue?: T;
+                                distanceUnit?: T;
+                                customPrescription?: T;
+                                perSide?: T;
+                                perSideLabel?: T;
+                                minRestSec?: T;
+                                maxRestSec?: T;
+                                alternatives?: T;
+                                notes?: T;
+                                extraInfo?: T;
+                                enabled?: T;
+                                id?: T;
+                              };
+                          displayTableHeader?: T;
+                          enabled?: T;
+                          id?: T;
+                        };
+                    intervals?:
+                      | T
+                      | {
+                          intro?: T;
+                          rounds?:
+                            | T
+                            | {
+                                label?: T;
+                                warmUp?: T;
+                                hardEffort?: T;
+                                recovery?: T;
+                                repeat?: T;
+                                note?: T;
+                                id?: T;
+                              };
+                          coolDown?: T;
+                        };
+                    progressionNote?: T;
+                    extraInfo?: T;
+                    enabled?: T;
+                    id?: T;
+                  };
+              instructions?: T;
+              progressionGuidance?: T;
+              recoveryGuidance?: T;
+              initiallyExpanded?: T;
+              enabled?: T;
+              id?: T;
+              blockName?: T;
+            };
+        coolDown?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              items?:
+                | T
+                | {
+                    itemType?: T;
+                    exercise?: T;
+                    prescriptionText?: T;
+                    textContent?: T;
+                    instructions?: T;
+                    id?: T;
+                  };
+              extraInfo?: T;
+              initiallyExpanded?: T;
+              id?: T;
+              blockName?: T;
+            };
+        richText?:
+          | T
+          | {
+              title?: T;
+              content?: T;
+              displayStyle?: T;
+              collapsible?: T;
+              initiallyExpanded?: T;
+              id?: T;
+              blockName?: T;
+            };
+        safety?:
+          | T
+          | {
+              title?: T;
+              safetyContent?: T;
+              requireAcknowledgement?: T;
+              acknowledgementContent?: T;
+              actionLabel?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
