@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/contexts/AuthModalContext";
 import { useAuth } from "@/contexts/AuthContext";
+import LogoMark from "@/components/LogoMark";
 
 const NAV_LINKS = [
   { href: "/features", label: "Features" },
@@ -19,8 +20,13 @@ export default function LandingHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-card-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href={user ? "/dashboard" : "/"} className="font-display text-2xl tracking-tight">
-          LOG<span className="text-accent">&amp;</span>TRAIN
+        <Link
+          href={user ? "/dashboard" : "/"}
+          className="flex items-center font-display text-2xl tracking-tight"
+        >
+          LOG
+          <LogoMark className="mx-0.5 h-[0.8em] w-auto translate-y-[0.05em] text-accent" />
+          TRAIN
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
