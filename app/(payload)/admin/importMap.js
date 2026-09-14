@@ -21,6 +21,10 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { ProgramExerciseItemRowLabel as ProgramExerciseItemRowLabel_141b4c00875db569c6e429d404e91243 } from '@/components/payload/ProgramExerciseItemRowLabel'
+import { ExerciseGroupRowLabel as ExerciseGroupRowLabel_0035bfb4c73fc02a4f61f49d4eb022b5 } from '@/components/payload/ExerciseGroupRowLabel'
+import { DayRowLabel as DayRowLabel_312f19dc6eb3c52518b85e33a7bd7ab2 } from '@/components/payload/DayRowLabel'
+import { PhaseRowLabel as PhaseRowLabel_7988e508794f5b3cb5af9d564733de2a } from '@/components/payload/PhaseRowLabel'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -49,6 +53,10 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/components/payload/ProgramExerciseItemRowLabel#ProgramExerciseItemRowLabel": ProgramExerciseItemRowLabel_141b4c00875db569c6e429d404e91243,
+  "@/components/payload/ExerciseGroupRowLabel#ExerciseGroupRowLabel": ExerciseGroupRowLabel_0035bfb4c73fc02a4f61f49d4eb022b5,
+  "@/components/payload/DayRowLabel#DayRowLabel": DayRowLabel_312f19dc6eb3c52518b85e33a7bd7ab2,
+  "@/components/payload/PhaseRowLabel#PhaseRowLabel": PhaseRowLabel_7988e508794f5b3cb5af9d564733de2a,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

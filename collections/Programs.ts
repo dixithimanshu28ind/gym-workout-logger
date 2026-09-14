@@ -278,6 +278,11 @@ const exerciseGroupFields: Field[] = [
     type: "array",
     dbName: "phase_group_items",
     minRows: 1,
+    admin: {
+      components: {
+        RowLabel: "@/components/payload/ProgramExerciseItemRowLabel#ProgramExerciseItemRowLabel",
+      },
+    },
     fields: programExerciseItemFields,
   },
   { name: "displayTableHeader", type: "checkbox", defaultValue: true },
@@ -334,6 +339,11 @@ const dayFields: Field[] = [
     name: "exerciseGroups",
     type: "array",
     dbName: "phase_days_groups",
+    admin: {
+      components: {
+        RowLabel: "@/components/payload/ExerciseGroupRowLabel#ExerciseGroupRowLabel",
+      },
+    },
     fields: exerciseGroupFields,
   },
   intervalsField,
@@ -424,6 +434,11 @@ const safetyBlock: Block = {
 const phaseBlock: Block = {
   slug: "phase",
   labels: { singular: "Phase", plural: "Phases" },
+  admin: {
+    components: {
+      Label: "@/components/payload/PhaseRowLabel#PhaseRowLabel",
+    },
+  },
   fields: [
     {
       name: "phaseKey",
@@ -556,7 +571,12 @@ const phaseBlock: Block = {
       name: "days",
       type: "array",
       dbName: "phase_create_days",
-      admin: { condition: (_, siblingData) => siblingData?.contentMode === "create" },
+      admin: {
+        condition: (_, siblingData) => siblingData?.contentMode === "create",
+        components: {
+          RowLabel: "@/components/payload/DayRowLabel#DayRowLabel",
+        },
+      },
       fields: dayFields,
     },
     // --- Guidance (all modes) ---
