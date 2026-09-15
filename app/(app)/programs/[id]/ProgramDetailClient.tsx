@@ -100,7 +100,7 @@ export default function ProgramDetailClient({
   };
 
   const handleSelectStart = () => {
-    if (!agreed) return;
+    if (detail.safetyNote.requireAcknowledgement && !agreed) return;
     if (!user) {
       openSignUp((userId) => doSelectProgram(userId));
       return;
@@ -135,7 +135,7 @@ export default function ProgramDetailClient({
       onClick={scrollToDisclaimer}
       className="whitespace-nowrap rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-accent-foreground shadow-sm transition hover:opacity-90"
     >
-      Select & Start ↓
+      {detail.safetyNote.actionLabel} ↓
     </button>
   );
 
@@ -192,37 +192,31 @@ export default function ProgramDetailClient({
           <TextBlockContent block={detail.coolDown} />
         </CollapsibleSection>
 
-        <div className="rounded-xl border border-card-border bg-card p-5">
+        <div ref={disclaimerRef} className="space-y-4 rounded-xl border border-card-border bg-card p-5">
           <h3 className="font-display text-lg tracking-wide">{detail.safetyNote.title}</h3>
-          <ul className="mt-2 list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-sm">
             {detail.safetyNote.bullets.map((b, i) => (
               <li key={i}>{b}</li>
             ))}
           </ul>
-        </div>
 
-        <div ref={disclaimerRef} className="space-y-4 rounded-xl border border-card-border bg-card p-5">
-          <h3 className="font-display text-lg tracking-wide">Before You Start</h3>
-          <p className="text-sm text-neutral-500">
-            This workout plan provides general fitness guidance and is not medical advice. Exercise
-            involves a risk of injury, and individual fitness levels and health conditions vary.
-          </p>
-          <p className="text-sm text-neutral-500">
-            Start with weights and intensity appropriate for your ability. Stop exercising if you
-            experience pain, dizziness, unusual shortness of breath, or feel unwell. If you have a
-            medical condition, injury, are pregnant, or have concerns about starting an exercise
-            program, consult a qualified healthcare professional first.
-          </p>
+          {detail.safetyNote.acknowledgementContent.map((p, i) => (
+            <p key={i} className="text-sm text-neutral-500">
+              {p}
+            </p>
+          ))}
 
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-0.5"
-            />
-            I understand and will exercise according to my own ability and health condition.
-          </label>
+          {detail.safetyNote.requireAcknowledgement && (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5"
+              />
+              I understand and will exercise according to my own ability and health condition.
+            </label>
+          )}
 
           {error && (
             <p className="text-sm text-red-600" role="alert">
@@ -237,10 +231,10 @@ export default function ProgramDetailClient({
 
           <button
             onClick={handleSelectStart}
-            disabled={!agreed || saving || isSelected}
+            disabled={(detail.safetyNote.requireAcknowledgement && !agreed) || saving || isSelected}
             className="w-full rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-accent-foreground transition hover:opacity-90 disabled:opacity-50 sm:w-auto"
           >
-            {isSelected ? "Current Program" : saving ? "Selecting..." : "Select & Start"}
+            {isSelected ? "Current Program" : saving ? "Selecting..." : detail.safetyNote.actionLabel}
           </button>
         </div>
 

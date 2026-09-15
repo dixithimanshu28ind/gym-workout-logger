@@ -174,5 +174,12 @@ export interface ProgramDetail {
   warmUp: ProgramTextBlock;
   weekBlocks: ProgramWeekBlock[];
   coolDown: ProgramTextBlock;
-  safetyNote: { title: string; bullets: string[] };
+  safetyNote: {
+    title: string;
+    bullets: string[];
+    /** CMS-authored consent flow (safetyBlock fields) — drives the "Before You Start" acknowledgement UI. */
+    requireAcknowledgement: boolean;
+    acknowledgementContent: string[];
+    actionLabel: string;
+  };
 }

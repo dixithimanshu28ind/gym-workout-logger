@@ -52,12 +52,14 @@ type CmsItem = {
   minRestSec?: number | null;
   maxRestSec?: number | null;
   alternatives?: (number | CmsExercise)[] | null;
+  enabled?: boolean | null;
 };
 
 type CmsGroup = {
   name: string;
   workoutType?: string | null;
   items: CmsItem[];
+  enabled?: boolean | null;
 };
 
 type CmsIntervalRound = {
@@ -82,6 +84,7 @@ type CmsDay = {
   exerciseGroups?: CmsGroup[] | null;
   intervals?: CmsIntervals;
   progressionNote?: LexicalRichText;
+  enabled?: boolean | null;
 };
 
 type CmsDayOverride = {
@@ -101,6 +104,7 @@ type CmsPhaseBlock = {
   sourcePhaseKey?: string | null;
   setsScale?: number | null;
   dayOverrides?: CmsDayOverride[] | null;
+  enabled?: boolean | null;
 };
 
 type CmsWarmUpBlock = {
@@ -122,6 +126,9 @@ type CmsSafetyBlock = {
   blockType: "safety";
   title: string;
   safetyContent?: LexicalRichText;
+  requireAcknowledgement?: boolean | null;
+  acknowledgementContent?: LexicalRichText;
+  actionLabel?: string | null;
 };
 
 type CmsSection = CmsPhaseBlock | CmsWarmUpBlock | CmsCoolDownBlock | CmsSafetyBlock | { blockType: string };
@@ -194,10 +201,11 @@ function buildExerciseRow(item: CmsItem, setsScale = 1): ExerciseRow {
 }
 
 function buildGroup(group: CmsGroup, showHeading: boolean, setsScale = 1): LegacyExerciseGroup {
+  const items = group.items.filter((i) => i.enabled !== false);
   return {
     heading: showHeading ? group.name : undefined,
     workoutType: group.workoutType ?? undefined,
-    exercises: group.items.map((item) => buildExerciseRow(item, setsScale)),
+    exercises: items.map((item) => buildExerciseRow(item, setsScale)),
   };
 }
 
@@ -219,7 +227,7 @@ function buildHiit(intervals: CmsIntervals): HiitDetail | undefined {
 }
 
 function buildDay(day: CmsDay, setsScale = 1): ProgramDay {
-  const groups = day.exerciseGroups ?? [];
+  const groups = (day.exerciseGroups ?? []).filter((g) => g.enabled !== false);
   const showHeading = groups.length > 1;
   return {
     day: day.dayNumber,
@@ -246,6 +254,7 @@ function buildDeloadDays(phase: CmsPhaseBlock, sourcePhase: CmsPhaseBlock | unde
 
   const days: ProgramDay[] = [];
   for (const sourceDay of sourcePhase.days) {
+    if (sourceDay.enabled === false) continue;
     const override = overridesByDay.get(sourceDay.dayNumber);
     if (override?.excluded) continue;
 
@@ -278,7 +287,7 @@ function buildWeekBlock(phase: CmsPhaseBlock, phaseByKey: Map<string, CmsPhaseBl
     id: phase.phaseKey,
     title,
     intro: richTextToString(phase.description),
-    days: (phase.days ?? []).map((d) => buildDay(d)),
+    days: (phase.days ?? []).filter((d) => d.enabled !== false).map((d) => buildDay(d)),
   };
   return block;
 }
@@ -288,7 +297,8 @@ function isPhaseBlock(s: CmsSection): s is CmsPhaseBlock {
 }
 
 function buildSchedule(firstTrainingPhase: CmsPhaseBlock | undefined): LegacyProgram["schedule"] {
-  const byNumber = new Map((firstTrainingPhase?.days ?? []).map((d) => [d.dayNumber, d.dayName]));
+  const activeDays = (firstTrainingPhase?.days ?? []).filter((d) => d.enabled !== false);
+  const byNumber = new Map(activeDays.map((d) => [d.dayNumber, d.dayName]));
   const schedule: LegacyProgram["schedule"] = [];
   for (let day = 1; day <= 7; day++) {
     schedule.push({ day, focus: byNumber.get(day) ?? "Rest" });
@@ -302,8 +312,12 @@ export function adaptCmsProgram(doc: CmsProgramDoc): { program: LegacyProgram; d
   const coolDownBlock = sections.find((s): s is CmsCoolDownBlock => s.blockType === "coolDown");
   const safetyBlock = sections.find((s): s is CmsSafetyBlock => s.blockType === "safety");
   const phaseBlocks = sections.filter(isPhaseBlock);
+  // Kept unfiltered — a disabled phase can still be a valid reuse source;
+  // "enabled" governs whether *this* phase's own entry is visible, not
+  // whether its content is usable by a deload phase that points at it.
   const phaseByKey = new Map(phaseBlocks.map((p) => [p.phaseKey, p]));
-  const firstTrainingPhase = phaseBlocks.find((p) => p.contentMode === "create");
+  const visiblePhaseBlocks = phaseBlocks.filter((p) => p.enabled !== false);
+  const firstTrainingPhase = visiblePhaseBlocks.find((p) => p.contentMode === "create");
 
   const program: LegacyProgram = {
     id: doc.slug,
@@ -325,7 +339,7 @@ export function adaptCmsProgram(doc: CmsProgramDoc): { program: LegacyProgram; d
       bullets: (warmUpBlock?.items ?? []).map((i) => richTextToString(i.textContent) ?? "").filter(Boolean),
       note: richTextToString(warmUpBlock?.extraInfo),
     },
-    weekBlocks: phaseBlocks.map((p) => buildWeekBlock(p, phaseByKey)),
+    weekBlocks: visiblePhaseBlocks.map((p) => buildWeekBlock(p, phaseByKey)),
     coolDown: {
       title: coolDownBlock?.title ?? "Cool-Down",
       intro: richTextToString(coolDownBlock?.description),
@@ -334,6 +348,9 @@ export function adaptCmsProgram(doc: CmsProgramDoc): { program: LegacyProgram; d
     safetyNote: {
       title: safetyBlock?.title ?? "Safety",
       bullets: richTextToBullets(safetyBlock?.safetyContent),
+      requireAcknowledgement: safetyBlock?.requireAcknowledgement ?? true,
+      acknowledgementContent: richTextToParagraphs(safetyBlock?.acknowledgementContent),
+      actionLabel: safetyBlock?.actionLabel || "Select & Start",
     },
   };
 
