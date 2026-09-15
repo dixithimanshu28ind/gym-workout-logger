@@ -6,9 +6,9 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchWorkoutSummaries } from "@/lib/workouts";
 import { fetchProfile } from "@/lib/profile";
-import { getProgramById } from "@/lib/programs";
+import { fetchProgramById } from "@/lib/programsClient";
 import { computeCurrentStreak, computeLongestStreak } from "@/lib/streak";
-import type { WorkoutSummary } from "@/lib/types";
+import type { Program, WorkoutSummary } from "@/lib/types";
 import WeeklyWorkoutHistory from "@/components/WeeklyWorkoutHistory";
 import WeekAtAGlance from "@/components/WeekAtAGlance";
 import AppShell from "@/components/AppShell";
@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(true);
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadWorkouts = useCallback(async (userId: string) => {
@@ -30,7 +31,9 @@ export default function DashboardPage() {
         fetchProfile(userId),
       ]);
       setWorkouts(data);
-      setSelectedProgramId(profile?.selected_program_id ?? null);
+      const programId = profile?.selected_program_id ?? null;
+      setSelectedProgramId(programId);
+      setSelectedProgram(programId ? (await fetchProgramById(programId))?.program ?? null : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load workouts.");
     } finally {
@@ -58,7 +61,6 @@ export default function DashboardPage() {
 
   const streak = computeCurrentStreak(workouts.map((w) => w.date));
   const longestStreak = computeLongestStreak(workouts.map((w) => w.date));
-  const selectedProgram = getProgramById(selectedProgramId);
   const hasProgram = !!selectedProgram;
   const hasWorkouts = workouts.length > 0;
 

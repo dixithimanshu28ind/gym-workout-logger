@@ -1,5 +1,4 @@
-import type { ExerciseRow, ProgramDay } from "@/lib/types";
-import { getProgramDetail } from "@/lib/programDetails";
+import type { ExerciseRow, ProgramDay, ProgramDetail } from "@/lib/types";
 
 export interface ProgramDayRef {
   /** Stable id for this program day, e.g. "weeks-1-5:1". Persisted on workouts.program_day_key. */
@@ -14,9 +13,12 @@ export interface ProgramDayRef {
  * Deload blocks have no `days` and are skipped entirely — matching GYM-11's
  * "progression is based on saved workout completion, not elapsed calendar
  * time" rule, since there's nothing to complete during a deload week.
+ *
+ * Takes an already-resolved ProgramDetail rather than a program id — the
+ * detail now comes from the CMS (see lib/cmsPrograms.ts / lib/programsClient.ts),
+ * which is async, so callers fetch it once and pass it in here.
  */
-export function getProgramDayList(programId: string | null | undefined): ProgramDayRef[] {
-  const detail = getProgramDetail(programId ?? undefined);
+export function getProgramDayList(detail: ProgramDetail | null | undefined): ProgramDayRef[] {
   if (!detail) return [];
 
   const list: ProgramDayRef[] = [];
@@ -36,17 +38,17 @@ export function getProgramDayList(programId: string | null | undefined): Program
 
 /** First program day not present in `completedKeys`, in program order. */
 export function getNextProgramDay(
-  programId: string | null | undefined,
+  detail: ProgramDetail | null | undefined,
   completedKeys: Set<string>
 ): ProgramDayRef | undefined {
-  return getProgramDayList(programId).find((d) => !completedKeys.has(d.key));
+  return getProgramDayList(detail).find((d) => !completedKeys.has(d.key));
 }
 
 export function findProgramDay(
-  programId: string | null | undefined,
+  detail: ProgramDetail | null | undefined,
   key: string
 ): ProgramDayRef | undefined {
-  return getProgramDayList(programId).find((d) => d.key === key);
+  return getProgramDayList(detail).find((d) => d.key === key);
 }
 
 export interface PrescribedExerciseRef {
