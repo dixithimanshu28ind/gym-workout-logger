@@ -13,6 +13,16 @@ const STANDARD_COOLDOWN = {
   note: "5–10 minutes of easy treadmill walking or stationary cycling. This should feel comfortable. It isn't another cardio workout.",
 };
 
+// Currently identical across all 3 programs and hardcoded straight into the
+// detail page's UI (not per-program data) — preserved here too so the CMS
+// adapter's golden-test comparison (which now includes these fields) has
+// something real to check against.
+const ACKNOWLEDGEMENT_CONTENT = [
+  "This workout plan provides general fitness guidance and is not medical advice. Exercise involves a risk of injury, and individual fitness levels and health conditions vary.",
+  "Start with weights and intensity appropriate for your ability. Stop exercising if you experience pain, dizziness, unusual shortness of breath, or feel unwell. If you have a medical condition, injury, are pregnant, or have concerns about starting an exercise program, consult a qualified healthcare professional first.",
+];
+const ACTION_LABEL = "Select & Start";
+
 const STANDARD_SAFETY_NOTE = {
   title: "Final Progression & Safety Note",
   bullets: [
@@ -21,6 +31,9 @@ const STANDARD_SAFETY_NOTE = {
     "Some days you'll feel stronger than others. Push yourself when you feel ready, but don't force progression simply because the program says you should.",
     "Normal muscular effort and fatigue are expected. Pain is different — don't push through pain.",
   ],
+  requireAcknowledgement: true,
+  acknowledgementContent: ACKNOWLEDGEMENT_CONTENT,
+  actionLabel: ACTION_LABEL,
 };
 
 const PROGRAM_DETAILS: Record<string, ProgramDetail> = {
@@ -874,6 +887,9 @@ const PROGRAM_DETAILS: Record<string, ProgramDetail> = {
         "Some days you'll feel stronger than others. Push yourself when you feel ready, but don't force progression simply because the program says you should.",
         "Normal muscular effort and fatigue are expected. Pain is different — don't push through pain.",
       ],
+      requireAcknowledgement: true,
+      acknowledgementContent: ACKNOWLEDGEMENT_CONTENT,
+      actionLabel: ACTION_LABEL,
     },
   },
 };

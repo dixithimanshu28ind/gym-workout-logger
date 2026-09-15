@@ -399,12 +399,25 @@ function buildCoolDownBlock(coolDown: ProgramTextBlock) {
   };
 }
 
+// The "Before You Start" consent copy is currently hardcoded identically
+// into the real detail page for all 3 programs (not part of
+// lib/programDetails.ts's per-program data) — preserved verbatim here so
+// wiring the CMS's requireAcknowledgement/acknowledgementContent/actionLabel
+// into the live UI doesn't change today's actual behavior.
+const ACKNOWLEDGEMENT_CONTENT = [
+  "This workout plan provides general fitness guidance and is not medical advice. Exercise involves a risk of injury, and individual fitness levels and health conditions vary.",
+  "Start with weights and intensity appropriate for your ability. Stop exercising if you experience pain, dizziness, unusual shortness of breath, or feel unwell. If you have a medical condition, injury, are pregnant, or have concerns about starting an exercise program, consult a qualified healthcare professional first.",
+];
+const ACTION_LABEL = "Select & Start";
+
 function buildSafetyBlock(safetyNote: { title: string; bullets: string[] }) {
   return {
     blockType: "safety",
     title: safetyNote.title,
     safetyContent: richTextBulletList(safetyNote.bullets),
-    requireAcknowledgement: false,
+    requireAcknowledgement: true,
+    acknowledgementContent: richTextParagraphs(ACKNOWLEDGEMENT_CONTENT),
+    actionLabel: ACTION_LABEL,
   };
 }
 
