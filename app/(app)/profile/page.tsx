@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProfile, upsertProfile } from "@/lib/profile";
-import { getProgramById } from "@/lib/programs";
-import type { GymExperience, Profile } from "@/lib/types";
+import { fetchProgramById } from "@/lib/programsClient";
+import type { GymExperience, Profile, Program } from "@/lib/types";
 import AppShell from "@/components/AppShell";
 
 const EXPERIENCE_OPTIONS: { value: GymExperience; label: string }[] = [
@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const [weightKg, setWeightKg] = useState("");
   const [targetWeightKg, setTargetWeightKg] = useState("");
   const [gymExperience, setGymExperience] = useState<GymExperience | "">("");
-  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -40,14 +40,15 @@ export default function ProfilePage() {
     }
     if (user) {
       fetchProfile(user.id)
-        .then((profile) => {
+        .then(async (profile) => {
           if (!profile) return;
           setName(profile.name ?? "");
           setAge(profile.age?.toString() ?? "");
           setWeightKg(profile.weight_kg?.toString() ?? "");
           setTargetWeightKg(profile.target_weight_kg?.toString() ?? "");
           setGymExperience(profile.gym_experience ?? "");
-          setSelectedProgramId(profile.selected_program_id ?? null);
+          const programId = profile.selected_program_id ?? null;
+          setSelectedProgram(programId ? (await fetchProgramById(programId))?.program ?? null : null);
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load profile."))
         .finally(() => setLoadingProfile(false));
@@ -85,8 +86,6 @@ export default function ProfilePage() {
       setSubmitting(false);
     }
   };
-
-  const selectedProgram = getProgramById(selectedProgramId);
 
   return (
     <AppShell title="Profile">

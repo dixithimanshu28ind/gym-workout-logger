@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationGuard } from "@/contexts/NavigationGuardContext";
 import { fetchProfile } from "@/lib/profile";
-import { getProgramById } from "@/lib/programs";
+import { fetchProgramById } from "@/lib/programsClient";
 import { getProgramAbbreviation } from "@/lib/programAbbreviation";
 import {
   createWorkout,
@@ -37,6 +37,8 @@ import type {
   EffortType,
   ExerciseData,
   ExerciseRow,
+  Program,
+  ProgramDetail,
   SetData,
   WorkoutFormData,
   WorkoutSectionData,
@@ -96,6 +98,10 @@ function NewWorkoutPageInner() {
   const [loadingPage, setLoadingPage] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
+  const [selectedProgramData, setSelectedProgramData] = useState<{
+    program: Program;
+    detail: ProgramDetail;
+  } | null>(null);
   const [dateToWorkoutIds, setDateToWorkoutIds] = useState<Map<string, string[]>>(new Map());
   const [selectedDate, setSelectedDate] = useState(
     () => prefilledDate ?? formatDateKey(new Date())
@@ -170,9 +176,13 @@ function NewWorkoutPageInner() {
           }
           return programId;
         })
-        .then((programId) => {
+        .then(async (programId) => {
           if (!programId) return;
-          return fetchProgramDayProgress(user.id, programId).then(setProgramDayProgress);
+          const data = await fetchProgramById(programId);
+          setSelectedProgramData(data);
+          if (data) {
+            return fetchProgramDayProgress(user.id, programId, data.detail).then(setProgramDayProgress);
+          }
         })
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load workout data."))
         .finally(() => setLoadingPage(false));
@@ -234,7 +244,7 @@ function NewWorkoutPageInner() {
   };
 
   const loggedDates = useMemo(() => new Set(dateToWorkoutIds.keys()), [dateToWorkoutIds]);
-  const selectedProgram = getProgramById(selectedProgramId);
+  const selectedProgram = selectedProgramData?.program ?? null;
 
   const savedSection = sections.find((s) => s.data.id);
   const dateProgramId = savedSection?.data.program_id ?? null;
@@ -250,8 +260,9 @@ function NewWorkoutPageInner() {
   );
 
   const nextProgramDay = useMemo(
-    () => (selectedProgramId ? getNextProgramDay(selectedProgramId, completedProgramDayKeys) : undefined),
-    [selectedProgramId, completedProgramDayKeys]
+    () =>
+      selectedProgramData ? getNextProgramDay(selectedProgramData.detail, completedProgramDayKeys) : undefined,
+    [selectedProgramData, completedProgramDayKeys]
   );
   const showRecommendation =
     !!selectedProgramId &&
@@ -268,7 +279,7 @@ function NewWorkoutPageInner() {
       if (!key) continue;
       const progress = programDayProgress.get(key);
       if (!progress || progress.meetsThreshold) continue;
-      const ref = findProgramDay(selectedProgramId, key);
+      const ref = findProgramDay(selectedProgramData?.detail, key);
       if (!ref) continue;
       return { ref, progress };
     }
@@ -665,7 +676,7 @@ function NewWorkoutPageInner() {
         <Modal onClose={() => setPickerOpen(false)}>
           <p className="font-medium mb-3">Choose a program workout</p>
           <div className="max-h-80 space-y-1 overflow-y-auto">
-            {getProgramDayList(selectedProgramId).map((ref) => {
+            {getProgramDayList(selectedProgramData?.detail).map((ref) => {
               const done = completedProgramDayKeys.has(ref.key);
               return (
                 <button

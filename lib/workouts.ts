@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import type { WorkoutFormData, WorkoutSummary } from "@/lib/types";
+import type { ProgramDetail, WorkoutFormData, WorkoutSummary } from "@/lib/types";
 import { normalizeEffortType } from "@/lib/effortTypes";
 import { isSetComplete } from "@/lib/workoutCompletion";
 import { findProgramDay, prescribedExerciseCount } from "@/lib/programProgress";
@@ -127,7 +127,8 @@ export interface ProgramDayProgress {
  */
 export async function fetchProgramDayProgress(
   userId: string,
-  programId: string
+  programId: string,
+  programDetail: ProgramDetail | null
 ): Promise<Map<string, ProgramDayProgress>> {
   const { data, error } = await supabase
     .from("workouts")
@@ -157,7 +158,7 @@ export async function fetchProgramDayProgress(
 
   const result = new Map<string, ProgramDayProgress>();
   for (const [key, { completedIndexes, anyComplete }] of byKey) {
-    const ref = findProgramDay(programId, key);
+    const ref = findProgramDay(programDetail, key);
     const total = ref ? prescribedExerciseCount(ref.day) : 0;
     // A 0-prescribed day (HIIT/rounds-only) has no ratio to compute — treat
     // any saved exercise as meeting the bar instead of dividing by zero.
