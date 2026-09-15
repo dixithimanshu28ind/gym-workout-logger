@@ -150,6 +150,13 @@ export interface DeloadBlock {
   id: string;
   title: string;
   body: string[];
+  /**
+   * Loggable days reused from the deload's source phase (CMS reuse-mode
+   * phases only — the pre-CMS hardcoded programs never had this). Absent
+   * for a deload with no CMS-backed source, or a day excluded via the
+   * source phase's dayOverrides.
+   */
+  days?: ProgramDay[];
 }
 
 export type ProgramWeekBlock = TrainingBlock | DeloadBlock;
