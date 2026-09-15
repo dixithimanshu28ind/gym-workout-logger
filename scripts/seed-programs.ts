@@ -324,31 +324,48 @@ function deriveDayName(title: string): string {
 
 type ExerciseInfo = { targetStr: string; measurementType: EffortType };
 
-function collectExercises(details: ProgramDetail[]): Map<string, ExerciseInfo> {
-  const map = new Map<string, ExerciseInfo>();
+function forEachRow(details: ProgramDetail[], fn: (row: ExerciseRow) => void): void {
   for (const detail of details) {
     for (const block of detail.weekBlocks) {
       if (block.kind !== "training") continue;
       for (const day of block.days) {
         for (const group of day.groups ?? []) {
           for (const row of group.exercises) {
-            if (!map.has(row.exercise)) {
-              map.set(row.exercise, {
-                targetStr: row.target,
-                measurementType: row.measurementType ?? inferMeasurementType(row.exercise),
-              });
-            }
-            if (row.alternative && row.alternative !== "—" && !map.has(row.alternative)) {
-              map.set(row.alternative, {
-                targetStr: row.target,
-                measurementType: inferMeasurementType(row.alternative),
-              });
-            }
+            fn(row);
           }
         }
       }
     }
   }
+}
+
+// Two passes: an exercise's own primary occurrence must always win its
+// target/measurementType, even if it was also seen earlier as someone
+// else's *alternative* (which would otherwise wrongly inherit the target
+// of the row it stood in for) — confirmed by e.g. "Barbell Row", which is
+// both its own primary exercise (target "Mid Back + Lats") and used as the
+// alternative for "One-Arm Dumbbell Row" (target "Lats + Mid Back").
+function collectExercises(details: ProgramDetail[]): Map<string, ExerciseInfo> {
+  const map = new Map<string, ExerciseInfo>();
+
+  forEachRow(details, (row) => {
+    if (!map.has(row.exercise)) {
+      map.set(row.exercise, {
+        targetStr: row.target,
+        measurementType: row.measurementType ?? inferMeasurementType(row.exercise),
+      });
+    }
+  });
+
+  forEachRow(details, (row) => {
+    if (row.alternative && row.alternative !== "—" && !map.has(row.alternative)) {
+      map.set(row.alternative, {
+        targetStr: row.target,
+        measurementType: inferMeasurementType(row.alternative),
+      });
+    }
+  });
+
   return map;
 }
 
@@ -375,8 +392,9 @@ function buildCoolDownBlock(coolDown: ProgramTextBlock) {
   return {
     blockType: "coolDown",
     title: coolDown.title,
-    description: richTextParagraphs([coolDown.intro, coolDown.note]),
+    description: richTextParagraphs([coolDown.intro]),
     items: [],
+    extraInfo: coolDown.note ? richTextParagraphs([coolDown.note]) : undefined,
     initiallyExpanded: false,
   };
 }

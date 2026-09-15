@@ -1,10 +1,13 @@
 import type {
   Block,
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
   CollectionBeforeValidateHook,
   CollectionConfig,
   Field,
 } from "payload";
 import { ValidationError } from "payload";
+import { revalidateTag } from "next/cache";
 
 // ---------------------------------------------------------------------------
 // Shared option lists
@@ -664,6 +667,34 @@ const lockImmutableFieldsAfterPublish: CollectionBeforeValidateHook = async ({
 };
 
 // ---------------------------------------------------------------------------
+// Live cache invalidation — publishing/unpublishing/deleting a program (or
+// saving a draft, which doesn't affect the published-only read the app
+// uses, but costs nothing to also invalidate) should go live immediately
+// rather than waiting for a redeploy. revalidateTag needs a Next.js
+// request-scoped context, which doesn't exist when Payload runs outside
+// the app (e.g. scripts/seed-programs.ts) — swallow that case rather than
+// letting it break seeding.
+// ---------------------------------------------------------------------------
+
+const revalidateProgramsAfterChange: CollectionAfterChangeHook = async ({ doc }) => {
+  try {
+    revalidateTag("programs", "max");
+  } catch {
+    // Not running inside a Next.js request — e.g. a standalone script.
+  }
+  return doc;
+};
+
+const revalidateProgramsAfterDelete: CollectionAfterDeleteHook = async ({ doc }) => {
+  try {
+    revalidateTag("programs", "max");
+  } catch {
+    // Not running inside a Next.js request — e.g. a standalone script.
+  }
+  return doc;
+};
+
+// ---------------------------------------------------------------------------
 // Programs collection
 // ---------------------------------------------------------------------------
 
@@ -682,6 +713,8 @@ export const Programs: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [lockImmutableFieldsAfterPublish],
+    afterChange: [revalidateProgramsAfterChange],
+    afterDelete: [revalidateProgramsAfterDelete],
   },
   fields: [
     { name: "name", type: "text", required: true },
