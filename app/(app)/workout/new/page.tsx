@@ -259,10 +259,21 @@ function NewWorkoutPageInner() {
     [programDayProgress]
   );
 
+  // Any day with logged activity at all, not just ones meeting the 50%
+  // completion bar — used to find how far the user has actually reached in
+  // the program, so newly-loggable deload days never get recommended
+  // *behind* where they already are.
+  const touchedProgramDayKeys = useMemo(
+    () => new Set(programDayProgress.keys()),
+    [programDayProgress]
+  );
+
   const nextProgramDay = useMemo(
     () =>
-      selectedProgramData ? getNextProgramDay(selectedProgramData.detail, completedProgramDayKeys) : undefined,
-    [selectedProgramData, completedProgramDayKeys]
+      selectedProgramData
+        ? getNextProgramDay(selectedProgramData.detail, completedProgramDayKeys, touchedProgramDayKeys)
+        : undefined,
+    [selectedProgramData, completedProgramDayKeys, touchedProgramDayKeys]
   );
   const showRecommendation =
     !!selectedProgramId &&

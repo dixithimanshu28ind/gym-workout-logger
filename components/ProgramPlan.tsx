@@ -144,11 +144,20 @@ function DayBlock({ day }: { day: ProgramDay }) {
 export function WeekBlockContent({ block }: { block: ProgramWeekBlock }) {
   if (block.kind === "deload") {
     return (
-      <ul className="list-disc list-inside space-y-1 text-sm">
-        {block.body.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
+      <div className="space-y-6">
+        <ul className="list-disc list-inside space-y-1 text-sm">
+          {block.body.map((line, i) => (
+            <li key={i}>{line}</li>
+          ))}
+        </ul>
+        {block.days && block.days.length > 0 && (
+          <div className="space-y-6">
+            {block.days.map((day) => (
+              <DayBlock key={day.day} day={day} />
+            ))}
+          </div>
+        )}
+      </div>
     );
   }
   return (

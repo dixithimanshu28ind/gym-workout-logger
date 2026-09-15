@@ -84,6 +84,12 @@ type CmsDay = {
   progressionNote?: LexicalRichText;
 };
 
+type CmsDayOverride = {
+  dayNumber: number;
+  excluded?: boolean | null;
+  notes?: LexicalRichText;
+};
+
 type CmsPhaseBlock = {
   blockType: "phase";
   phaseKey: string;
@@ -92,6 +98,9 @@ type CmsPhaseBlock = {
   contentMode: "create" | "reuse" | "info";
   description?: LexicalRichText;
   days?: CmsDay[] | null;
+  sourcePhaseKey?: string | null;
+  setsScale?: number | null;
+  dayOverrides?: CmsDayOverride[] | null;
 };
 
 type CmsWarmUpBlock = {
@@ -156,13 +165,16 @@ function toStoredPrescription(item: CmsItem): StoredPrescription {
   } as StoredPrescription;
 }
 
-function buildExerciseRow(item: CmsItem): ExerciseRow {
+function buildExerciseRow(item: CmsItem, setsScale = 1): ExerciseRow {
   const exercise = asPopulated(item.exercise, "exercise");
   const target = targetNames(exercise);
   const stored = toStoredPrescription(item);
   const targetReps = formatPrescription(stored, item.perSide, item.perSideLabel);
   const setsRepsPrescription = formatSetsRepsPrescription(stored, item.perSide, item.perSideLabel);
-  const sets = item.sets ?? undefined;
+  const rawSets = item.sets ?? undefined;
+  // Deload phases scale down set counts (e.g. 0.5×) — round up, minimum 1,
+  // matching the CMS field's own documented prefill rule.
+  const sets = rawSets != null ? Math.max(1, Math.ceil(rawSets * setsScale)) : undefined;
   const setsReps = sets != null ? `${sets} × ${setsRepsPrescription}` : setsRepsPrescription;
   const rest = formatRest(item.minRestSec, item.maxRestSec);
   const firstAlt = item.alternatives?.[0];
@@ -181,11 +193,11 @@ function buildExerciseRow(item: CmsItem): ExerciseRow {
   };
 }
 
-function buildGroup(group: CmsGroup, showHeading: boolean): LegacyExerciseGroup {
+function buildGroup(group: CmsGroup, showHeading: boolean, setsScale = 1): LegacyExerciseGroup {
   return {
     heading: showHeading ? group.name : undefined,
     workoutType: group.workoutType ?? undefined,
-    exercises: group.items.map(buildExerciseRow),
+    exercises: group.items.map((item) => buildExerciseRow(item, setsScale)),
   };
 }
 
@@ -206,27 +218,58 @@ function buildHiit(intervals: CmsIntervals): HiitDetail | undefined {
   };
 }
 
-function buildDay(day: CmsDay): ProgramDay {
+function buildDay(day: CmsDay, setsScale = 1): ProgramDay {
   const groups = day.exerciseGroups ?? [];
   const showHeading = groups.length > 1;
   return {
     day: day.dayNumber,
     title: day.displayTitle || `Day ${day.dayNumber} — ${day.dayName}`,
     note: richTextToString(day.description),
-    groups: groups.length > 0 ? groups.map((g) => buildGroup(g, showHeading)) : undefined,
+    groups: groups.length > 0 ? groups.map((g) => buildGroup(g, showHeading, setsScale)) : undefined,
     hiit: buildHiit(day.intervals),
     progressionNote: richTextToString(day.progressionNote),
   };
 }
 
-function buildWeekBlock(phase: CmsPhaseBlock): ProgramWeekBlock {
+/**
+ * A reuse-mode (deload) phase's loggable days: the source phase's days,
+ * scaled sets and with dayOverrides applied (excluded days dropped, notes
+ * appended). " (Deload)" is appended to each day's title since the
+ * "Choose a program workout" picker lists every phase's days in one flat
+ * list, where an unmodified title would be indistinguishable from the
+ * source day it was copied from.
+ */
+function buildDeloadDays(phase: CmsPhaseBlock, sourcePhase: CmsPhaseBlock | undefined): ProgramDay[] | undefined {
+  if (!sourcePhase?.days || sourcePhase.days.length === 0) return undefined;
+  const setsScale = phase.setsScale ?? 1;
+  const overridesByDay = new Map((phase.dayOverrides ?? []).map((o) => [o.dayNumber, o]));
+
+  const days: ProgramDay[] = [];
+  for (const sourceDay of sourcePhase.days) {
+    const override = overridesByDay.get(sourceDay.dayNumber);
+    if (override?.excluded) continue;
+
+    const built = buildDay(sourceDay, setsScale);
+    const overrideNote = richTextToString(override?.notes);
+    days.push({
+      ...built,
+      title: `${built.title} (Deload)`,
+      note: [built.note, overrideNote].filter(Boolean).join(" ") || undefined,
+    });
+  }
+  return days.length > 0 ? days : undefined;
+}
+
+function buildWeekBlock(phase: CmsPhaseBlock, phaseByKey: Map<string, CmsPhaseBlock>): ProgramWeekBlock {
   const title = phase.displayTitle || phase.name;
   if (phase.contentMode === "reuse") {
+    const sourcePhase = phase.sourcePhaseKey ? phaseByKey.get(phase.sourcePhaseKey) : undefined;
     const block: DeloadBlock = {
       kind: "deload",
       id: phase.phaseKey,
       title,
       body: richTextToParagraphs(phase.description),
+      days: buildDeloadDays(phase, sourcePhase),
     };
     return block;
   }
@@ -235,7 +278,7 @@ function buildWeekBlock(phase: CmsPhaseBlock): ProgramWeekBlock {
     id: phase.phaseKey,
     title,
     intro: richTextToString(phase.description),
-    days: (phase.days ?? []).map(buildDay),
+    days: (phase.days ?? []).map((d) => buildDay(d)),
   };
   return block;
 }
@@ -259,6 +302,7 @@ export function adaptCmsProgram(doc: CmsProgramDoc): { program: LegacyProgram; d
   const coolDownBlock = sections.find((s): s is CmsCoolDownBlock => s.blockType === "coolDown");
   const safetyBlock = sections.find((s): s is CmsSafetyBlock => s.blockType === "safety");
   const phaseBlocks = sections.filter(isPhaseBlock);
+  const phaseByKey = new Map(phaseBlocks.map((p) => [p.phaseKey, p]));
   const firstTrainingPhase = phaseBlocks.find((p) => p.contentMode === "create");
 
   const program: LegacyProgram = {
@@ -281,7 +325,7 @@ export function adaptCmsProgram(doc: CmsProgramDoc): { program: LegacyProgram; d
       bullets: (warmUpBlock?.items ?? []).map((i) => richTextToString(i.textContent) ?? "").filter(Boolean),
       note: richTextToString(warmUpBlock?.extraInfo),
     },
-    weekBlocks: phaseBlocks.map(buildWeekBlock),
+    weekBlocks: phaseBlocks.map((p) => buildWeekBlock(p, phaseByKey)),
     coolDown: {
       title: coolDownBlock?.title ?? "Cool-Down",
       intro: richTextToString(coolDownBlock?.description),
