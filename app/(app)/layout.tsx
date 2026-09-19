@@ -4,7 +4,6 @@ import "../globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NavigationGuardProvider } from "@/contexts/NavigationGuardContext";
 import { AuthModalProvider } from "@/contexts/AuthModalContext";
-import FitSparkChat from "@/components/FitSparkChat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +38,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <AuthModalProvider>{children}</AuthModalProvider>
           </NavigationGuardProvider>
         </AuthProvider>
-        <FitSparkChat />
       </body>
     </html>
   );
