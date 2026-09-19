@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRequireAuth } from "@/contexts/AuthContext";
 import { fetchWorkoutSummaries } from "@/lib/workouts";
 import { fetchProfile } from "@/lib/profile";
 import { fetchProgramById } from "@/lib/programsClient";
@@ -14,8 +13,7 @@ import WeekAtAGlance from "@/components/WeekAtAGlance";
 import AppShell from "@/components/AppShell";
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user, loading } = useRequireAuth();
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(true);
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
@@ -42,14 +40,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-      return;
-    }
     if (user) {
       loadWorkouts(user.id);
     }
-  }, [user, loading, router, loadWorkouts]);
+  }, [user, loadWorkouts]);
 
   if (loading || !user) {
     return (
