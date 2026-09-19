@@ -61,9 +61,11 @@ export default function AppShell({
 
   const handleSignOut = () =>
     guardedNavigate(() => {
-      // Navigate first: once the current protected page is gone, its own
-      // "no user -> /signin" redirect effect can no longer fire and race
-      // this one once signOut() flips the auth state to null.
+      // Both halves are needed. signOut() records that the user chose this,
+      // so a protected page still mounted when the session ends (navigation
+      // isn't instant) sends them to "/" too, via useRequireAuth, instead of
+      // /signin. The explicit push covers pages with no such redirect, such as
+      // the public Programs pages, which also render this shell.
       router.push("/");
       signOut();
     });

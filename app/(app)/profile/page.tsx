@@ -2,8 +2,7 @@
 
 import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRequireAuth } from "@/contexts/AuthContext";
 import { fetchProfile, upsertProfile } from "@/lib/profile";
 import { fetchProgramById } from "@/lib/programsClient";
 import type { GymExperience, Profile, Program } from "@/lib/types";
@@ -19,8 +18,7 @@ const inputClass =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent";
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user, loading } = useRequireAuth();
 
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [name, setName] = useState("");
@@ -34,10 +32,6 @@ export default function ProfilePage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-      return;
-    }
     if (user) {
       fetchProfile(user.id)
         .then(async (profile) => {
@@ -53,7 +47,7 @@ export default function ProfilePage() {
         .catch((e) => setError(e instanceof Error ? e.message : "Failed to load profile."))
         .finally(() => setLoadingProfile(false));
     }
-  }, [user, loading, router]);
+  }, [user]);
 
   if (loading || !user || loadingProfile) {
     return (

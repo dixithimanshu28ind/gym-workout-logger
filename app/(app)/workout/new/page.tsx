@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRequireAuth } from "@/contexts/AuthContext";
 import { useNavigationGuard } from "@/contexts/NavigationGuardContext";
 import { fetchProfile } from "@/lib/profile";
 import { fetchProgramById } from "@/lib/programsClient";
@@ -90,7 +90,7 @@ export default function NewWorkoutPage() {
 }
 
 function NewWorkoutPageInner() {
-  const { user, loading } = useAuth();
+  const { user, loading } = useRequireAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefilledDate = searchParams.get("date");
@@ -152,10 +152,6 @@ function NewWorkoutPageInner() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-      return;
-    }
     if (user) {
       Promise.all([fetchProfile(user.id), fetchWorkoutSummaries(user.id)])
         .then(([profile, summaries]) => {
@@ -188,7 +184,7 @@ function NewWorkoutPageInner() {
         .finally(() => setLoadingPage(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loading, router]);
+  }, [user]);
 
   const currentIdsForDate = useMemo(
     () => dateToWorkoutIds.get(selectedDate) ?? [],
