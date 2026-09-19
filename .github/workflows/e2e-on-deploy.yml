@@ -1,0 +1,35 @@
+name: Trigger E2E on deploy
+
+# Vercel reports every deployment to GitHub as a deployment_status event.
+# When one succeeds, ask the e2e repo to smoke-test it; that run posts an
+# "e2e/smoke" status back onto this commit.
+on:
+  deployment_status:
+
+# The dispatch uses a fine-grained token (E2E_DISPATCH_TOKEN), not GITHUB_TOKEN.
+permissions: {}
+
+jobs:
+  dispatch:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.E2E_DISPATCH_TOKEN }}
+      E2E_REPO: dixithimanshu28ind/logandtrain-e2e-tests
+      ENVIRONMENT: ${{ github.event.deployment.environment }}
+      SHA: ${{ github.event.deployment.sha }}
+      DEPLOY_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://gym-workout-logger-ashen.vercel.app' }}
+    steps:
+      - name: Dispatch the e2e run
+        run: |
+          # Per-deployment URLs are behind Vercel login, but the production
+          # alias is public, so test that instead for Production deploys.
+          URL="$DEPLOY_URL"
+          if [ "$ENVIRONMENT" = "Production" ]; then URL="$PRODUCTION_URL"; fi
+
+          gh api "repos/$E2E_REPO/dispatches" \
+            -f event_type=app-deployed \
+            -f "client_payload[url]=$URL" \
+            -f "client_payload[sha]=$SHA" \
+            -f "client_payload[environment]=$ENVIRONMENT"
