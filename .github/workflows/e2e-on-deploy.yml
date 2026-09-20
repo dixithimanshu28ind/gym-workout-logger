@@ -19,12 +19,17 @@ jobs:
       ENVIRONMENT: ${{ github.event.deployment.environment }}
       SHA: ${{ github.event.deployment.sha }}
       DEPLOY_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
-      PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://gym-workout-logger-ashen.vercel.app' }}
+      PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://www.logandtrain.com' }}
     steps:
       - name: Dispatch the e2e run
         run: |
-          # Per-deployment URLs are behind Vercel login, but the production
-          # alias is public, so test that instead for Production deploys.
+          # Production is tested at the real site, the URL users actually
+          # visit, so a broken custom domain (DNS, certificate, redirect)
+          # shows up as a failed check instead of passing unnoticed. Preview
+          # deploys keep their per-deployment Vercel URL, which the e2e run
+          # reaches with the protection-bypass secret.
+          # The e2e gate only accepts that host or a *.vercel.app one, so if
+          # you change this, update the allow-list in that repo's e2e.yml too.
           URL="$DEPLOY_URL"
           if [ "$ENVIRONMENT" = "Production" ]; then URL="$PRODUCTION_URL"; fi
 
