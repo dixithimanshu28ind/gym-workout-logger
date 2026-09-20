@@ -31,35 +31,37 @@ const exerciseCache = new Map<string, PopulatedExercise | null>();
 function useResolvedExercise(exercise: ItemData["exercise"]): PopulatedExercise | undefined {
   const isPopulated = typeof exercise === "object" && exercise !== null;
   const id = isPopulated ? undefined : exercise;
-  const [resolved, setResolved] = useState<PopulatedExercise | null | undefined>(
-    id != null ? exerciseCache.get(String(id)) : undefined
+  const key = id != null ? String(id) : undefined;
+
+  // Only an in-flight fetch needs state. A cache hit is read during render, so
+  // the effect never sets state synchronously. The result is stored with its
+  // key so a slow fetch for a previous exercise can't be shown for a new one.
+  const [fetched, setFetched] = useState<{ key: string; doc: PopulatedExercise | null } | null>(
+    null
   );
 
   useEffect(() => {
-    if (id == null) return;
-    const key = String(id);
-    const cached = exerciseCache.get(key);
-    if (cached !== undefined) {
-      setResolved(cached);
-      return;
-    }
+    if (key === undefined || exerciseCache.has(key)) return;
     let cancelled = false;
     fetch(`/api/payload/exercises/${key}?depth=1`)
       .then((res) => (res.ok ? res.json() : null))
       .then((doc: PopulatedExercise | null) => {
         exerciseCache.set(key, doc);
-        if (!cancelled) setResolved(doc);
+        if (!cancelled) setFetched({ key, doc });
       })
       .catch(() => {
-        if (!cancelled) setResolved(null);
+        if (!cancelled) setFetched({ key, doc: null });
       });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [key]);
 
   if (isPopulated) return exercise as PopulatedExercise;
-  return resolved ?? undefined;
+  if (key === undefined) return undefined;
+  if (exerciseCache.has(key)) return exerciseCache.get(key) ?? undefined;
+  if (fetched?.key === key) return fetched.doc ?? undefined;
+  return undefined;
 }
 
 function formatPrescription(data: ItemData): string | undefined {
