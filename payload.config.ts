@@ -10,6 +10,7 @@ import { Media } from "./collections/Media";
 import { Programs } from "./collections/Programs";
 import { Targets } from "./collections/Targets";
 import { Users } from "./collections/Users";
+import { FeatureFlags } from "./globals/FeatureFlags";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -19,6 +20,7 @@ export default buildConfig({
     user: Users.slug,
   },
   collections: [Users, Media, Targets, Exercises, Programs],
+  globals: [FeatureFlags],
   editor: lexicalEditor(),
   routes: {
     api: "/api/payload",
