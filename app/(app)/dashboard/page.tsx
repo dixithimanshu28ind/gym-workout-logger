@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRequireAuth } from "@/contexts/AuthContext";
 import { fetchWorkoutSummaries } from "@/lib/workouts";
@@ -15,35 +15,42 @@ import AppShell from "@/components/AppShell";
 export default function DashboardPage() {
   const { user, loading } = useRequireAuth();
   const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
-  const [loadingWorkouts, setLoadingWorkouts] = useState(true);
+  // Which user's data has finished loading (or failed). "Loading workouts..."
+  // is derived from it rather than set by hand, so nothing sets state
+  // synchronously inside the effect below.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadWorkouts = useCallback(async (userId: string) => {
-    setLoadingWorkouts(true);
-    setError(null);
-    try {
-      const [data, profile] = await Promise.all([
-        fetchWorkoutSummaries(userId),
-        fetchProfile(userId),
-      ]);
-      setWorkouts(data);
-      const programId = profile?.selected_program_id ?? null;
-      setSelectedProgramId(programId);
-      setSelectedProgram(programId ? (await fetchProgramById(programId))?.program ?? null : null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load workouts.");
-    } finally {
-      setLoadingWorkouts(false);
-    }
-  }, []);
-
   useEffect(() => {
-    if (user) {
-      loadWorkouts(user.id);
-    }
-  }, [user, loadWorkouts]);
+    if (!user) return;
+    // Ignore a response that arrives after the user changed or the page left,
+    // so a slow earlier load can't overwrite a newer one.
+    let cancelled = false;
+    (async () => {
+      try {
+        const [data, profile] = await Promise.all([
+          fetchWorkoutSummaries(user.id),
+          fetchProfile(user.id),
+        ]);
+        const programId = profile?.selected_program_id ?? null;
+        const program = programId ? (await fetchProgramById(programId))?.program ?? null : null;
+        if (cancelled) return;
+        setWorkouts(data);
+        setSelectedProgramId(programId);
+        setSelectedProgram(program);
+        setError(null);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load workouts.");
+      } finally {
+        if (!cancelled) setLoadedFor(user.id);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (loading || !user) {
     return (
@@ -52,6 +59,8 @@ export default function DashboardPage() {
       </main>
     );
   }
+
+  const loadingWorkouts = loadedFor !== user.id;
 
   const streak = computeCurrentStreak(workouts.map((w) => w.date));
   const longestStreak = computeLongestStreak(workouts.map((w) => w.date));

@@ -31,20 +31,24 @@ export default function AppShell({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { guardedNavigate } = useNavigationGuard();
-  const [profileName, setProfileName] = useState<string | null>(null);
+  // The name is stored with the user it belongs to and only shown for that
+  // user. With no user, or a different one, it is simply not shown, so it never
+  // needs resetting inside the effect (and one user's name can't linger for the
+  // next person signing in on the same tab).
+  const [fetchedName, setFetchedName] = useState<{ userId: string; name: string | null } | null>(
+    null
+  );
+  const profileName = user && fetchedName?.userId === user.id ? fetchedName.name : null;
 
   useEffect(() => {
-    if (!user) {
-      setProfileName(null);
-      return;
-    }
+    if (!user) return;
     let cancelled = false;
     fetchProfile(user.id)
       .then((profile) => {
-        if (!cancelled) setProfileName(profile?.name?.trim() || null);
+        if (!cancelled) setFetchedName({ userId: user.id, name: profile?.name?.trim() || null });
       })
       .catch(() => {
-        if (!cancelled) setProfileName(null);
+        if (!cancelled) setFetchedName({ userId: user.id, name: null });
       });
     return () => {
       cancelled = true;
