@@ -97,8 +97,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'feature-flags': FeatureFlag;
+  };
+  globalsSelect: {
+    'feature-flags': FeatureFlagsSelect<false> | FeatureFlagsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -1369,6 +1373,38 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Switch features Off, Coming soon or Live. Production and preview deployments share this CMS, so Live here means Live in production. Test unfinished work with the FEATURE_FLAGS_OVERRIDE environment variable instead.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "feature-flags".
+ */
+export interface FeatureFlag {
+  id: number;
+  /**
+   * Paid, personalised programs offered on the Programs page.
+   */
+  custom_programs: 'off' | 'coming_soon' | 'live';
+  /**
+   * Create or join a community, with posts, comments and reactions.
+   */
+  community: 'off' | 'coming_soon' | 'live';
+  updatedBy?: (number | null) | User;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "feature-flags_select".
+ */
+export interface FeatureFlagsSelect<T extends boolean = true> {
+  custom_programs?: T;
+  community?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
