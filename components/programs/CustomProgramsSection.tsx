@@ -8,7 +8,9 @@
  * the browser: not the copy, not the prices, not the links.
  *
  *   coming_soon  both options with a "Coming soon" label. No prices, no link.
- *   live         both options with price and a button.
+ *   live         each option whose landing page exists, with price and a
+ *                button; any other option stays "Coming soon" (see
+ *                landingPageReady in lib/customPrograms.ts).
  */
 import Link from "next/link";
 
@@ -32,29 +34,34 @@ export function CustomProgramsSection({ state }: { state: "coming_soon" | "live"
       </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        {CUSTOM_PROGRAM_OPTIONS.map((option) => (
-          <article key={option.type} className="flex flex-col rounded-xl border border-accent/40 bg-card p-5">
-            <h3 className="font-display text-xl tracking-wide">{option.name}</h3>
-            {live && (
-              <p className="mt-1 text-sm font-semibold text-accent">{formatRupees(option.price)} · One-time</p>
-            )}
-            <p className="mt-3 flex-1 text-sm">{option.description}</p>
-            {live ? (
-              <Link
-                href={customProgramHref(option.type)}
-                className="mt-4 inline-block self-start text-sm font-medium text-accent hover:underline"
-              >
-                {option.cta} →
-              </Link>
-            ) : (
-              <p className="mt-4">
-                <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-                  Coming soon
-                </span>
-              </p>
-            )}
-          </article>
-        ))}
+        {CUSTOM_PROGRAM_OPTIONS.map((option) => {
+          // Only an option whose landing page exists can be offered, even when
+          // the flag is Live. The rest stay a teaser (see landingPageReady).
+          const offered = live && option.landingPageReady;
+          return (
+            <article key={option.type} className="flex flex-col rounded-xl border border-accent/40 bg-card p-5">
+              <h3 className="font-display text-xl tracking-wide">{option.name}</h3>
+              {offered && (
+                <p className="mt-1 text-sm font-semibold text-accent">{formatRupees(option.price)} · One-time</p>
+              )}
+              <p className="mt-3 flex-1 text-sm">{option.description}</p>
+              {offered ? (
+                <Link
+                  href={customProgramHref(option.type)}
+                  className="mt-4 inline-block self-start text-sm font-medium text-accent hover:underline"
+                >
+                  {option.cta} →
+                </Link>
+              ) : (
+                <p className="mt-4">
+                  <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                    Coming soon
+                  </span>
+                </p>
+              )}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
