@@ -56,6 +56,16 @@ export function isFeatureState(value: unknown): value is FeatureState {
   return typeof value === "string" && (FEATURE_STATES as readonly string[]).includes(value);
 }
 
+/**
+ * States are ordered off < coming_soon < live. A page or API that opts in to
+ * Coming soon (a "register your interest" page, say) is available in that state
+ * and in Live: `isAtLeast(state, "coming_soon")`. The default everywhere else is
+ * Live only.
+ */
+export function isAtLeast(state: FeatureState, minimum: FeatureState): boolean {
+  return FEATURE_STATES.indexOf(state) >= FEATURE_STATES.indexOf(minimum);
+}
+
 export type FeatureStates = Record<FeatureKey, FeatureState>;
 export type FeatureOverride = Partial<Record<FeatureKey, FeatureState>>;
 

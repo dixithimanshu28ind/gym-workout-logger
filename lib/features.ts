@@ -20,6 +20,7 @@ import { FEATURE_FLAGS_TAG } from "@/globals/FeatureFlags";
 import { getPayloadClient } from "@/lib/payloadClient";
 import {
   FEATURE_KEYS,
+  isAtLeast,
   parseOverride,
   publicFeatureStates,
   resolveFeatureStates,
@@ -104,21 +105,34 @@ export async function getPublicFeatureStates() {
 
 /**
  * For a page (or layout) that belongs to a feature: a real 404 unless the
- * feature is Live, so a hidden feature cannot be reached by typing its URL.
- * Give such a page `export const dynamic = "force-dynamic"`.
+ * feature has reached `minimum`, so a hidden feature cannot be reached by typing
+ * its URL. `minimum` defaults to Live; pass "coming_soon" for a page that is
+ * meant to exist while the feature is only a teaser (it is then reachable in
+ * Coming soon and Live, never in Off). Returns the state, so the page can
+ * render the version that fits it. Give such a page
+ * `export const dynamic = "force-dynamic"`.
  */
-export async function requireFeature(key: FeatureKey): Promise<void> {
-  if ((await getFeatureState(key)) !== "live") notFound();
+export async function requireFeature(
+  key: FeatureKey,
+  minimum: "coming_soon" | "live" = "live"
+): Promise<FeatureState> {
+  const state = await getFeatureState(key);
+  if (!isAtLeast(state, minimum)) notFound();
+  return state;
 }
 
 /**
  * For an API route or webhook that belongs to a feature. Returns a 404 response
- * unless the feature is Live, and null when the request may go ahead:
+ * unless the feature has reached `minimum` (Live by default), and null when the
+ * request may go ahead:
  *
  *   const blocked = await requireFeatureForApi("custom_programs");
  *   if (blocked) return blocked;
  */
-export async function requireFeatureForApi(key: FeatureKey): Promise<NextResponse | null> {
-  if ((await getFeatureState(key)) === "live") return null;
+export async function requireFeatureForApi(
+  key: FeatureKey,
+  minimum: "coming_soon" | "live" = "live"
+): Promise<NextResponse | null> {
+  if (isAtLeast(await getFeatureState(key), minimum)) return null;
   return NextResponse.json({ error: "Not found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
 }

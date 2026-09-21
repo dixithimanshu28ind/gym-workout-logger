@@ -6,6 +6,7 @@ import { s3Storage } from "@payloadcms/storage-s3";
 import { buildConfig } from "payload";
 
 import { Exercises } from "./collections/Exercises";
+import { InterestRegistrations } from "./collections/InterestRegistrations";
 import { Media } from "./collections/Media";
 import { Programs } from "./collections/Programs";
 import { Targets } from "./collections/Targets";
@@ -19,7 +20,7 @@ export default buildConfig({
   admin: {
     user: Users.slug,
   },
-  collections: [Users, Media, Targets, Exercises, Programs],
+  collections: [Users, Media, Targets, Exercises, Programs, InterestRegistrations],
   globals: [FeatureFlags],
   editor: lexicalEditor(),
   routes: {
