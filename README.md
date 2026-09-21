@@ -108,6 +108,29 @@ The e2e suite checks its shape, and each feature's own tests read it to know whi
 
 `node ./node_modules/.bin/tsx scripts/feature-flags-test.ts` checks the rules (override, fail-safe, public list) without a database. Page and API behaviour is covered by the e2e suite.
 
+## Database tables
+
+**Every table must be protected from the public Supabase key.** That key is in the website's JavaScript, so anyone can use it, and Supabase serves every table in the `public` schema through a REST API to whoever holds it. A table is only safe if **row-level security is on** and the `anon` and `authenticated` roles have **no privileges** on it.
+
+The CMS (Payload) creates its tables with neither, and Supabase grants those roles full access by default. Until 2026-09-21 that let a stranger read the CMS admin's email and password hash and attempt writes to programs, users and feature flags (GYM-46). It was closed by hand on production, and `migrations/20260921_133736_enable_rls_on_cms_tables.ts` makes a freshly built database safe too.
+
+**When you add a table** (a new collection or global), end its migration with:
+
+```ts
+import { PROTECT_PUBLIC_TABLES_SQL } from '../lib/rlsSql'
+
+export async function up({ db }: MigrateUpArgs): Promise<void> {
+  // ... the generated statements ...
+  await db.execute(sql.raw(PROTECT_PUBLIC_TABLES_SQL))
+}
+```
+
+It does nothing to tables that are already protected, so it is safe to run repeatedly, and it never affects the CMS itself, which connects as `postgres` and bypasses row-level security. The app's own tables (`workouts`, `exercises`, `sets`, `profiles`) have their own policies and are left alone.
+
+**It is checked, not just written down.** The e2e suite lists every table in the database and tries to read and write each one with the public key. If a table is left open, the test `cms-tables-not-public` fails after the next production deploy or nightly run, and names the table.
+
+Adding a column to an existing table does not create a table, so a feature flag's migration does not need this.
+
 ## Project Plan
 
 See [PLAN.md](../PLAN.md) in the assignment root for the full Plan → Develop → Verify → Push → Deploy breakdown.
