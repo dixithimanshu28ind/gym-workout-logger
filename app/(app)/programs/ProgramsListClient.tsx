@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchProfile, leaveProgram } from "@/lib/profile";
@@ -10,7 +10,14 @@ import Modal from "@/components/Modal";
 import LandingHeader from "@/components/landing/LandingHeader";
 import Footer from "@/components/landing/Footer";
 
-export default function ProgramsListClient({ programs }: { programs: Program[] }) {
+export default function ProgramsListClient({
+  programs,
+  intro = null,
+}: {
+  programs: Program[];
+  /** Rendered above the list by the server page (Custom Programs, when its flag is on). */
+  intro?: ReactNode;
+}) {
   const { user, loading } = useAuth();
 
   const [loadingSelection, setLoadingSelection] = useState(true);
@@ -59,6 +66,8 @@ export default function ProgramsListClient({ programs }: { programs: Program[] }
           {error}
         </p>
       )}
+
+      {intro}
 
       <div className="space-y-4">
         {programs.map((program) => {
