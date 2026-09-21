@@ -68,8 +68,9 @@ export function WhyCustomProgram() {
             </li>
           ))}
         </ul>
-        <p className="mt-6 text-center text-base font-medium">
-          That&apos;s where a Custom Training Program becomes useful.
+        {/* The conclusion of the section, so it is set apart from the examples above it. */}
+        <p className="mx-auto mt-10 max-w-2xl text-balance rounded-xl border border-accent/30 bg-accent/5 px-6 py-5 text-center font-display text-2xl leading-snug tracking-wide">
+          That&apos;s where a <span className="whitespace-nowrap text-accent">Custom Training Program</span> becomes useful.
         </p>
       </div>
     </section>
