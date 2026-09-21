@@ -1,6 +1,6 @@
 /**
- * The Custom Programs offering: what is sold, for how much, and where a
- * visitor goes to buy it. Pure data, no I/O.
+ * The Custom Programs offering: what is sold, for how much, how long it takes,
+ * and where a visitor goes to buy it. Pure data, no I/O.
  *
  * The prices are PLACEHOLDERS until the tax treatment (GST, tax-inclusive or
  * not) and the business bank account are settled. They live here, and only
@@ -20,6 +20,16 @@ export type CustomProgramOption = {
   price: number;
   description: string;
   cta: string;
+  /**
+   * Whether this option's landing page exists. While it does not, the Programs
+   * page shows the option as "Coming soon" even when the feature flag is Live:
+   * a price and a button pointing at a page that is not there would send every
+   * visitor's browser to prefetch a 404.
+   *
+   * Interim. GYM-45 replaces this with a real feature flag per option
+   * (custom_diet_programs), controlled from the CMS.
+   */
+  landingPageReady: boolean;
 };
 
 export const CUSTOM_PROGRAM_OPTIONS: readonly CustomProgramOption[] = [
@@ -30,6 +40,7 @@ export const CUSTOM_PROGRAM_OPTIONS: readonly CustomProgramOption[] = [
     description:
       "A personalized workout program built around your goals, experience, schedule, available equipment and training preferences.",
     cta: "Get My Training Program",
+    landingPageReady: true,
   },
   {
     type: "training-diet",
@@ -38,20 +49,38 @@ export const CUSTOM_PROGRAM_OPTIONS: readonly CustomProgramOption[] = [
     description:
       "A personalized training program plus a diet plan built around your goals, food preferences and daily routine.",
     cta: "Get Training + Diet Program",
+    landingPageReady: false,
   },
 ];
 
 /**
- * Where the buttons lead. The Custom Programs landing page is a separate card
- * and does not exist yet, so until it does the flag must not be Live in
- * production. The chosen option travels in the `type` query parameter so the
- * next page knows which one was picked.
+ * Each option has its own landing page under /programs/custom/<type>. Only the
+ * Training page exists so far; Training + Diet is a separate card (its own
+ * feature flag, GYM-45), so its address leads nowhere yet.
+ *
+ * The questionnaire the landing page hands over to is another card too, so
+ * until it exists the flag must stay Off or Coming soon in production.
  */
 export const CUSTOM_PROGRAMS_PATH = "/programs/custom";
 
 export function customProgramHref(type: CustomProgramType): string {
-  return `${CUSTOM_PROGRAMS_PATH}?type=${type}`;
+  return `${CUSTOM_PROGRAMS_PATH}/${type}`;
 }
+
+export const CUSTOM_TRAINING_QUESTIONNAIRE_PATH = `${customProgramHref("training")}/questionnaire`;
+
+export function getCustomProgramOption(type: CustomProgramType): CustomProgramOption {
+  const option = CUSTOM_PROGRAM_OPTIONS.find((o) => o.type === type);
+  if (!option) throw new Error(`Unknown custom program type: ${type}`);
+  return option;
+}
+
+/**
+ * The delivery promise shown on the Training landing page. Kept here so the
+ * hero and the "How it works" steps cannot disagree. The process that keeps it
+ * is a later card; until then this is copy the process must honour.
+ */
+export const CUSTOM_PROGRAM_DELIVERY_TIME = "24–36 hours";
 
 export function formatRupees(amount: number): string {
   return `₹${new Intl.NumberFormat("en-IN").format(amount)}`;
