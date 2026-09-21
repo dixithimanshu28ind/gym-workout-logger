@@ -42,7 +42,7 @@ A feature can be merged to production **switched off**, then revealed from the C
 | State | What visitors see |
 |---|---|
 | **Off** (default) | The feature does not exist: no entry points, its pages return a real 404, its APIs refuse requests |
-| **Coming soon** | Entry points show a teaser (no prices, no working checkout). Pages and APIs still refuse requests |
+| **Coming soon** | Entry points show a teaser (no prices, no working checkout). Pages and APIs still refuse requests, **unless one opts in** to exist while a feature is only a teaser (for example a "register your interest" page; see below) |
 | **Live** | Everything works |
 
 Flags are switched in the CMS at **/admin, Feature Flags**. Every save is kept as a version, with who changed it and when. Changing a flag takes effect on the next request, with no redeploy.
@@ -71,6 +71,12 @@ Flags are switched in the CMS at **/admin, Feature Flags**. Every save is kept a
      if (blocked) return blocked;
      // ...
    }
+
+   // A page or API that should also exist while the feature is Coming soon
+   // (never while Off): pass the minimum state. requireFeature returns the
+   // state, so the page can show the version that fits it.
+   const state = await requireFeature("custom_programs", "coming_soon"); // "coming_soon" | "live"
+   const blocked = await requireFeatureForApi("custom_programs", "coming_soon");
 
    // An entry point on a page that exists anyway (a card, a nav link):
    const state = await getFeatureState("custom_programs"); // "off" | "coming_soon" | "live"
@@ -107,6 +113,20 @@ The e2e suite checks its shape, and each feature's own tests read it to know whi
 ### Tests
 
 `node ./node_modules/.bin/tsx scripts/feature-flags-test.ts` checks the rules (override, fail-safe, public list) without a database. Page and API behaviour is covered by the e2e suite.
+
+## Register your interest
+
+While a feature is only **Coming soon**, a visitor can leave an email and a comment saying what they would want, so we learn whether it is worth building before building it. Today it serves the Custom Training Program (`/programs/custom/training`).
+
+- **The form** (`components/interest/`) opens in a modal from the page's buttons. No login; a signed-in visitor's email is filled in. It is generic over the offering, so the Diet program or Community can reuse it.
+- **The endpoint** `POST /api/interest` exists while `custom_programs` is Coming soon or Live and is a 404 when Off. It validates, **saves first**, and then (after the response) emails support, so a mail problem never loses an entry.
+- **Where they go:** the CMS, under **Interest registrations** in `/admin`. Only CMS users can read them. The table holds email addresses and is created with row-level security on (see *Database tables*), so the public Supabase key cannot read it.
+- **The email** goes to support@logandtrain.com with the subject `custom plan query`, from the same mailbox, with Reply-To set to the visitor. Each entry records whether it went out (`emailStatus`).
+- **Mail settings** are environment variables, set on Vercel Production (and Preview if you want previews to send): `SMTP_HOST` (`smtp.zoho.in` or `smtp.zoho.com`), `SMTP_PORT` (default 465), `SMTP_USER` (`support@logandtrain.com`), `SMTP_PASS` (an app-specific password from Zoho, not the login password), optionally `INTEREST_EMAIL_TO`. If any of the first four is missing, entries are still saved and marked "Not configured".
+- **Abuse limits:** JSON only, a size cap, strict validation (one plain address, comments up to 1,000 characters), a hidden honeypot field, one entry per email and offering (registering again refreshes the comment), and at most 30 emails an hour (the rest are saved, marked "Not emailed (hourly limit)").
+- **Test addresses** (`e2e-<digits>-<id>@logandtrain-test.dev`, used by the e2e suite) are saved but never emailed. The nightly sweep deletes leftovers.
+- **Adding an offering:** add it to `INTEREST_KEYS` in `lib/interest.ts` and generate a migration for the new option (`npx payload migrate:create ...`); the table already has row-level security.
+- **Tests:** `node ./node_modules/.bin/tsx scripts/interest-test.ts` covers the rules and the email text without a database or mail server.
 
 ## Database tables
 

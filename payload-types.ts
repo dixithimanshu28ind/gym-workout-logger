@@ -72,6 +72,7 @@ export interface Config {
     targets: Target;
     exercises: Exercise;
     programs: Program;
+    'interest-registrations': InterestRegistration;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,6 +89,7 @@ export interface Config {
     targets: TargetsSelect<false> | TargetsSelect<true>;
     exercises: ExercisesSelect<false> | ExercisesSelect<true>;
     programs: ProgramsSelect<false> | ProgramsSelect<true>;
+    'interest-registrations': InterestRegistrationsSelect<false> | InterestRegistrationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -973,6 +975,31 @@ export interface Program {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * People who asked to hear about a feature before it launches. Newest first: open the list and sort by Created.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "interest-registrations".
+ */
+export interface InterestRegistration {
+  id: number;
+  email: string;
+  interest: 'custom-training-program';
+  /**
+   * What they said they would want, in their own words.
+   */
+  message?: string | null;
+  /**
+   * Which version of the privacy notice was shown when they registered.
+   */
+  noticeVersion?: string | null;
+  /**
+   * Whether the copy to support@logandtrain.com went out. The entry itself is always saved.
+   */
+  emailStatus?: ('pending' | 'sent' | 'failed' | 'not_configured' | 'skipped_test' | 'skipped_cap') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1015,6 +1042,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'programs';
         value: number | Program;
+      } | null)
+    | ({
+        relationTo: 'interest-registrations';
+        value: number | InterestRegistration;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1333,6 +1364,19 @@ export interface ProgramsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "interest-registrations_select".
+ */
+export interface InterestRegistrationsSelect<T extends boolean = true> {
+  email?: T;
+  interest?: T;
+  message?: T;
+  noticeVersion?: T;
+  emailStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

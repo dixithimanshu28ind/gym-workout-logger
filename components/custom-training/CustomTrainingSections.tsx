@@ -14,14 +14,27 @@ import {
   formatRupees,
   getCustomProgramOption,
 } from "@/lib/customPrograms";
+import RegisterInterestButton from "@/components/interest/RegisterInterestButton";
 import CustomTrainingCta from "./CustomTrainingCta";
 
+/**
+ * Which version of the page to show, from the `custom_programs` flag:
+ *   live      the full offer: price, delivery time, "start the questionnaire".
+ *   interest  Coming soon: no price and no delivery promise, and the buttons
+ *             open the "Register your interest" form instead (GYM-47).
+ */
+export type LandingMode = "live" | "interest";
+
 const price = () => `${formatRupees(getCustomProgramOption("training").price)} · One-time`;
+
+// Shown in place of the price while the price is not final (GST and tax wording,
+// business bank account), so nothing is promised that may change.
+const FEE_COPY = "A small one-time fee";
 
 const EYEBROW = "text-sm font-semibold tracking-[0.2em] text-accent";
 const H2 = "font-display text-3xl leading-tight sm:text-4xl";
 
-export function CustomTrainingHero() {
+export function CustomTrainingHero({ mode }: { mode: LandingMode }) {
   return (
     <section className="mx-auto max-w-3xl px-6 py-16 text-center sm:py-24">
       <p className={EYEBROW}>CUSTOM TRAINING PROGRAM</p>
@@ -33,12 +46,18 @@ export function CustomTrainingHero() {
       <p className="mt-4 text-base font-medium">
         Get a personalized training program built around how you actually train.
       </p>
-      <p className="mt-8 font-display text-2xl text-accent">{price()}</p>
+      <p className="mt-8 font-display text-2xl text-accent">{mode === "live" ? price() : FEE_COPY}</p>
       <div className="mt-4">
-        <CustomTrainingCta label="Build My Program →" />
+        {mode === "live" ? (
+          <CustomTrainingCta label="Build My Program →" />
+        ) : (
+          <RegisterInterestButton label="Register your interest →" interest="custom-training-program" />
+        )}
       </div>
       <p className="mt-4 text-sm text-neutral-500">
-        Personalized for you · Ready within {CUSTOM_PROGRAM_DELIVERY_TIME}
+        {mode === "live"
+          ? `Personalized for you · Ready within ${CUSTOM_PROGRAM_DELIVERY_TIME}`
+          : "Personalized for you · No payment needed now"}
       </p>
     </section>
   );
@@ -154,7 +173,7 @@ export function MoreThanADocument() {
   );
 }
 
-const STEPS = [
+const steps = (mode: LandingMode) => [
   {
     title: "Tell us about yourself",
     body: "Answer questions about your goals, training experience, schedule, equipment and preferences.",
@@ -165,17 +184,21 @@ const STEPS = [
   },
   {
     title: "Start training",
-    body: `Your Training Program will be available in Log & Train within ${CUSTOM_PROGRAM_DELIVERY_TIME}.`,
+    // No delivery promise until the process that keeps it exists.
+    body:
+      mode === "live"
+        ? `Your Training Program will be available in Log & Train within ${CUSTOM_PROGRAM_DELIVERY_TIME}.`
+        : "Your Training Program will be available in Log & Train.",
   },
 ];
 
-export function CustomTrainingHowItWorks() {
+export function CustomTrainingHowItWorks({ mode }: { mode: LandingMode }) {
   return (
     <section className="py-14 sm:py-20">
       <div className="mx-auto max-w-5xl px-6">
         <h2 className={`${H2} text-center`}>How it works</h2>
         <ol className="mt-8 grid gap-4 sm:grid-cols-3">
-          {STEPS.map((step, index) => (
+          {steps(mode).map((step, index) => (
             <li key={step.title} className="rounded-xl border border-card-border bg-card p-5">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
                 {index + 1}
@@ -193,7 +216,7 @@ export function CustomTrainingHowItWorks() {
   );
 }
 
-export function CustomTrainingFinalCta() {
+export function CustomTrainingFinalCta({ mode }: { mode: LandingMode }) {
   return (
     <>
       <section className="bg-accent py-12 sm:py-16">
@@ -201,13 +224,18 @@ export function CustomTrainingFinalCta() {
           <h2 className="font-display text-3xl leading-tight text-white sm:text-4xl">
             Ready for a program built around you?
           </h2>
-          <p className="mt-4 font-display text-2xl text-white">{price()}</p>
+          <p className="mt-4 font-display text-2xl text-white">{mode === "live" ? price() : FEE_COPY}</p>
           <div className="mt-6">
-            <CustomTrainingCta label="Start My Questionnaire →" tone="dark" />
+            {mode === "live" ? (
+              <CustomTrainingCta label="Start My Questionnaire →" tone="dark" />
+            ) : (
+              <RegisterInterestButton label="Tell us what you'd want →" interest="custom-training-program" tone="dark" />
+            )}
           </div>
           <p className="mx-auto mt-4 max-w-md text-sm text-white/90">
-            You only pay after you&apos;ve answered the questions, completed a short suitability check and reviewed
-            your answers.
+            {mode === "live"
+              ? "You only pay after you've answered the questions, completed a short suitability check and reviewed your answers."
+              : "No payment needed now. We'll email you when it's ready."}
           </p>
         </div>
       </section>

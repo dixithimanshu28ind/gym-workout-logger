@@ -23,23 +23,29 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /**
- * Public: anyone can read this page. Login is asked for at the buttons, not
- * here. It does not exist (a real 404) unless `custom_programs` is Live.
+ * Public: anyone can read this page. It does not exist (a real 404) while
+ * `custom_programs` is Off.
+ *
+ *   Coming soon  the page shows without a price, and its buttons open
+ *                "Register your interest" (no login) so we can learn whether
+ *                anyone wants this before building the paid flow (GYM-47).
+ *   Live         the full offer; login is asked for at the buttons (GYM-41).
  */
 export default async function CustomTrainingProgramPage() {
-  await requireFeature("custom_programs");
+  const state = await requireFeature("custom_programs", "coming_soon");
+  const mode = state === "live" ? "live" : "interest";
 
   return (
     <div className="flex-1">
       <LandingHeader />
       <main>
-        <CustomTrainingHero />
+        <CustomTrainingHero mode={mode} />
         <WhyCustomProgram />
         <WhatWeConsider />
         <SafetyAndSuitability />
         <MoreThanADocument />
-        <CustomTrainingHowItWorks />
-        <CustomTrainingFinalCta />
+        <CustomTrainingHowItWorks mode={mode} />
+        <CustomTrainingFinalCta mode={mode} />
       </main>
       <Footer />
     </div>

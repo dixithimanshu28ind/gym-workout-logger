@@ -4,6 +4,7 @@ import * as migration_20260914_131310_add_targets_exercises from './20260914_131
 import * as migration_20260914_133630_add_programs from './20260914_133630_add_programs';
 import * as migration_20260920_125221_feature_flags from './20260920_125221_feature_flags';
 import * as migration_20260921_133736_enable_rls_on_cms_tables from './20260921_133736_enable_rls_on_cms_tables';
+import * as migration_20260921_141109_add_interest_registrations from './20260921_141109_add_interest_registrations';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20260921_133736_enable_rls_on_cms_tables.up,
     down: migration_20260921_133736_enable_rls_on_cms_tables.down,
-    name: '20260921_133736_enable_rls_on_cms_tables'
+    name: '20260921_133736_enable_rls_on_cms_tables',
+  },
+  {
+    up: migration_20260921_141109_add_interest_registrations.up,
+    down: migration_20260921_141109_add_interest_registrations.down,
+    name: '20260921_141109_add_interest_registrations'
   },
 ];

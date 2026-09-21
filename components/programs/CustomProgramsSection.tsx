@@ -7,7 +7,9 @@
  * the client-side list as a prop. When the flag is Off nothing here is sent to
  * the browser: not the copy, not the prices, not the links.
  *
- *   coming_soon  both options with a "Coming soon" label. No prices, no link.
+ *   coming_soon  no prices. An option whose landing page exists shows "Coming
+ *                soon" under its name and a "Register interest" link to that
+ *                page; any other option just says "Coming soon".
  *   live         each option whose landing page exists, with price and a
  *                button; any other option stays "Coming soon" (see
  *                landingPageReady in lib/customPrograms.ts).
@@ -38,19 +40,29 @@ export function CustomProgramsSection({ state }: { state: "coming_soon" | "live"
           // Only an option whose landing page exists can be offered, even when
           // the flag is Live. The rest stay a teaser (see landingPageReady).
           const offered = live && option.landingPageReady;
+          // Coming soon, and the page exists: no price, "Coming soon" in its
+          // place, and the button leads to the page's "Register your interest".
+          const registerInterest = !live && option.landingPageReady;
           return (
             <article key={option.type} className="flex flex-col rounded-xl border border-accent/40 bg-card p-5">
               <h3 className="font-display text-xl tracking-wide">{option.name}</h3>
               {offered && (
                 <p className="mt-1 text-sm font-semibold text-accent">{formatRupees(option.price)} · One-time</p>
               )}
+              {registerInterest && (
+                <p className="mt-1">
+                  <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                    Coming soon
+                  </span>
+                </p>
+              )}
               <p className="mt-3 flex-1 text-sm">{option.description}</p>
-              {offered ? (
+              {offered || registerInterest ? (
                 <Link
                   href={customProgramHref(option.type)}
                   className="mt-4 inline-block self-start text-sm font-medium text-accent hover:underline"
                 >
-                  {option.cta} →
+                  {offered ? `${option.cta} →` : "Register interest →"}
                 </Link>
               ) : (
                 <p className="mt-4">
