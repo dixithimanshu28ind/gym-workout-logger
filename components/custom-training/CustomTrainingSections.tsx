@@ -55,11 +55,12 @@ export function WhyCustomProgram() {
   return (
     <section className="border-t border-card-border bg-card py-14 sm:py-20">
       <div className="mx-auto max-w-3xl px-6">
-        <h2 className={H2}>A good program has to fit your life, too.</h2>
-        <p className="mt-4 text-base text-neutral-600">
+        <h2 className={`${H2} text-center`}>A good program has to fit your life, too.</h2>
+        <p className="mt-4 text-center text-base text-neutral-600">
           Two people with the same goal may still need different training programs.
         </p>
-        <ul className="mt-6 space-y-3">
+        {/* Bullets read best left-aligned, so the list is a block centred on the page. */}
+        <ul className="mx-auto mt-6 w-fit max-w-full space-y-3">
           {FIT_EXAMPLES.map((example) => (
             <li key={example} className="flex gap-3 text-base">
               <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
@@ -67,7 +68,7 @@ export function WhyCustomProgram() {
             </li>
           ))}
         </ul>
-        <p className="mt-6 text-base font-medium">
+        <p className="mt-6 text-center text-base font-medium">
           That&apos;s where a Custom Training Program becomes useful.
         </p>
       </div>
@@ -135,11 +136,11 @@ export function MoreThanADocument() {
   return (
     <section className="border-t border-card-border bg-card py-14 sm:py-20">
       <div className="mx-auto max-w-3xl px-6">
-        <h2 className={H2}>More than a workout document.</h2>
-        <p className="mt-4 text-base text-neutral-600">
+        <h2 className={`${H2} text-center`}>More than a workout document.</h2>
+        <p className="mt-4 text-center text-base text-neutral-600">
           Your Custom Training Program becomes part of your Log &amp; Train experience. You can:
         </p>
-        <ul className="mt-6 space-y-3">
+        <ul className="mx-auto mt-6 w-fit max-w-full space-y-3">
           {IN_LOG_AND_TRAIN.map((item) => (
             <li key={item} className="flex gap-3 text-base">
               <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
